@@ -6,7 +6,9 @@ import logging
 
 # Relative imports
 from .. import util
-#from . import example_submodule1
+from . import ecdsa_python3
+from . import ripemd160_python3
+from . import sha256_python3
 
 
 
@@ -38,9 +40,22 @@ def setup(
   )
   deb('Setup complete.')
   # Configure modules further down in this package.
-  #example_submodule1.setup(
-  #  log_level = log_level,
-  #  debug = debug,
-  #  log_timestamp = log_timestamp,
-  #  log_file = log_file,
-  #)
+  ecdsa_python3.setup(
+    log_level = log_level,
+    debug = debug,
+    log_timestamp = log_timestamp,
+    log_file = log_file,
+  )
+  ripemd160_python3.setup(
+    log_level = log_level,
+    debug = debug,
+    log_timestamp = log_timestamp,
+    log_file = log_file,
+  )
+  sha256_python3.setup(
+    log_level = log_level,
+    debug = debug,
+    log_timestamp = log_timestamp,
+    log_file = log_file,
+  )
+
