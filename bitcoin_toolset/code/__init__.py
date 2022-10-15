@@ -7,6 +7,7 @@ import logging
 # Relative imports
 from .. import util
 from . import hello
+from . import basic
 
 
 
@@ -44,3 +45,10 @@ def setup(
     log_timestamp = log_timestamp,
     log_file = log_file,
   )
+  basic.setup(
+    log_level = log_level,
+    debug = debug,
+    log_timestamp = log_timestamp,
+    log_file = log_file,
+  )
+
