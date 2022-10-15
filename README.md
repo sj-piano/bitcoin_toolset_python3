@@ -23,7 +23,19 @@ python3 cli.py --task hello --log-level=info
 
 python3 cli.py --task get_python_version
 
+python3 cli.py --task get_private_key_wif --private-key-hex="01"
+
+python3 cli.py --task get_public_key --private-key-hex="01"
+
 python3 cli.py --task get_address --private-key-hex="01"
+
+python3 cli.py --task sign_data --private-key-hex="01" --data="hello world"
+
+python3 cli.py --task verify_signature --public-key-hex="01" --data="hello world" --signature="foo"
+
+python3 cli.py --task create_transaction --utxo-selection-approach="smallest_first, one_address_at_a_time, smallest_address_first" --utxo-file cli_input/utxos.json --output-file cli_input/outputs.json > cli_input/transaction_unsigned.json
+
+python3 cli.py --task sign_transaction --private-key-file cli_input/private_keys.txt --transaction-file cli_input/transaction_unsigned.json > cli_input/transaction_signed.txt
 
 ```
 
