@@ -1,0 +1,3 @@
+[submodule "bitcoin_toolset/submodules/ecdsa_python3"]
+	path = bitcoin_toolset/submodules/ecdsa_python3
+	url = git@github.com:sj-piano/ecdsa_python3.git
