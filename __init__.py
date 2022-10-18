@@ -5,7 +5,7 @@ import logging
 
 
 # Relative imports
-from . import example_package
+from . import bitcoin_toolset
 
 
 
@@ -18,12 +18,12 @@ from . import example_package
 
 # Collect up the things that we want in the immediate namespace of this module when it is imported.
 # This file allows a parent package to run this:
-# import example_package
-# example_package.hello()
-hello = example_package.code.hello.hello
-validate = example_package.util.validate
-configure_module_logger = example_package.util.module_logger.configure_module_logger
-#submodules = example_package.submodules
+# import bitcoin_toolset
+# bitcoin_toolset.hello()
+hello = bitcoin_toolset.code.hello.hello
+validate = bitcoin_toolset.util.validate
+configure_module_logger = bitcoin_toolset.util.module_logger.configure_module_logger
+#submodules = bitcoin_toolset.submodules
 
 
 
@@ -45,7 +45,7 @@ def setup(
     log_file = None,
     ):
   # Configure logger for this module.
-  example_package.util.module_logger.configure_module_logger(
+  bitcoin_toolset.util.module_logger.configure_module_logger(
     logger = logger,
     logger_name = __name__,
     log_level = log_level,
@@ -55,7 +55,7 @@ def setup(
   )
   deb('Setup complete.')
   # Configure modules further down in this package.
-  example_package.setup(
+  bitcoin_toolset.setup(
     log_level = log_level,
     debug = debug,
     log_timestamp = log_timestamp,
