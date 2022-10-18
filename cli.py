@@ -228,7 +228,7 @@ def get_python_version(a):
 
 
 def get_private_key_wif(a):
-  private_key_hex = format_private_key_hex(a.private_key_hex)
+  private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
   private_key_wif = bitcoin_toolset.code.basic.private_key_hex_to_wif(private_key_hex)
   print(private_key_wif)
 
@@ -236,7 +236,7 @@ def get_private_key_wif(a):
 
 
 def get_public_key(a):
-  private_key_hex = format_private_key_hex(a.private_key_hex)
+  private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
   public_key_hex = ecdsa_python3.private_key_hex_to_public_key_hex(private_key_hex)
   print(public_key_hex)
 
@@ -244,16 +244,18 @@ def get_public_key(a):
 
 
 def get_address(a):
-  pass
+  private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
+  address = bitcoin_toolset.code.basic.private_key_hex_to_address(private_key_hex)
+  print(address)
 
 
 
 
 def sign_data(a):
   data_ascii = a.data
-  util.misc.validate_string_is_printable_ascii(data_ascii)
+  v.validate_string_is_printable_ascii(data_ascii)
   data_hex = hexlify(data_ascii.encode()).decode('ascii')
-  private_key_hex = format_private_key_hex(a.private_key_hex)
+  private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
   signature_hex = ecdsa_python3.create_deterministic_signature(private_key_hex, data_hex)
   print(signature_hex)
   # Verify the signature as a double-check.
@@ -283,17 +285,8 @@ def sign_transaction(a):
 
 
 
-def format_private_key_hex(private_key_hex):
-  # Example private_key_hex values:
-  # '1234aabb'
-  # '1234 aa bb'
-  # '1234 AABB'
-  private_key_hex = remove_whitespace(private_key_hex).lower()
-  if len(private_key_hex) < 64:
-    private_key_hex = private_key_hex.zfill(64)
-  ecdsa_python3.validate_private_key_hex(private_key_hex)
-  return private_key_hex
-
+def verify_signed_transaction(a):
+  pass
 
 
 

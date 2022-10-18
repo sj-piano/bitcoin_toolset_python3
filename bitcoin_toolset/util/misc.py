@@ -18,6 +18,19 @@ from os.path import join
 
 
 
+def format_private_key_hex(private_key_hex):
+  # Example private_key_hex values:
+  # '1234aabb'
+  # '1234 aa bb'
+  # '1234 AABB'
+  private_key_hex = remove_whitespace(private_key_hex).lower()
+  if len(private_key_hex) < 64:
+    private_key_hex = private_key_hex.zfill(64)
+  return private_key_hex
+
+
+
+
 def remove_whitespace(text):
   return re.sub(r"\s+", "", text)
 
