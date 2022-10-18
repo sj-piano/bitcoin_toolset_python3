@@ -39,7 +39,7 @@ def validate_string_is_printable_ascii(x, name=None, location=None, kind='string
   validate_string(x)
   line = 0
   index = 0
-  for c in data:
+  for c in x:
     index += 1
     if c not in permitted_data_characters:
       msg = "Line {}, index {}: Character '{}' (ord={}) is not in the list of permitted data characters."
