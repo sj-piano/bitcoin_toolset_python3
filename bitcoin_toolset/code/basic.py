@@ -21,6 +21,7 @@ from .. import submodules
 
 # Shortcuts
 v = util.validate
+ecdsa = submodules.ecdsa_python3
 ripemd160 = submodules.ripemd160_python3
 sha256 = submodules.sha256_python3
 
@@ -57,8 +58,36 @@ def setup(
 
 
 
+def private_key_hex_to_address(private_key_hex):
+  ecdsa.validate_private_key_hex(private_key_hex)
+  public_key_hex = ecdsa.private_key_hex_to_public_key_hex(private_key_hex)
+  hash_hex = get_public_key_hash(public_key_hex)
+  # Add version byte to public key hash ("00" for "main Bitcoin network").
+  hash_hex_2 = "00" + hash_hex
+  # Convert the public key hash to Base58Check format.
+  address = hex_to_base58check(hash_hex_2)
+  return address
+
+
+
+
+def get_public_key_hash(public_key_hex):
+  # Add identification byte to public key ("04" for "uncompressed") to get an uncompressed Bitcoin public key
+  public_key_hex = "04" + public_key_hex
+  public_key_bytes = bytes.fromhex(public_key_hex)
+  digest_1 = sha256.digest(public_key_bytes)
+  digest_2 = ripemd160.digest(digest_1)
+  digest_2_hex = digest_2.hex()
+  v.validate_hex_length(digest_2_hex, 20)
+  return digest_2_hex
+
+
+
+
 def private_key_hex_to_wif(private_key_hex):
-  # add a "80" byte at the front (to indicate Bitcoin "mainnet").
+  # "WIF" = "Wallet Import Format"
+  ecdsa.validate_private_key_hex(private_key_hex)
+  # Add a "80" byte at the front (to indicate Bitcoin "mainnet").
   private_key_hex = "80" + private_key_hex
   private_key_wif = hex_to_base58check(private_key_hex)
   return private_key_wif
@@ -71,7 +100,7 @@ def hex_to_base58check(x):
   x += checksum_hex
   x_base58 = hex_to_base58(x)
   n = count_leading_zero_bytes(x)
-  output = n * '1' + x_base58
+  output = '1' * n + x_base58
   return output
 
 
@@ -125,14 +154,16 @@ def get_double_sha256(x):
 
 def get_sha256(x):
   v.validate_hex(x)
-  return sha256.hexdigest(x)
+  y = bytes.fromhex(x)
+  return sha256.hexdigest(y)
 
 
 
 
 def get_ripemd160(x):
   v.validate_hex(x)
-  return ripemd160.hexdigest(x)
+  y = bytes.fromhex(x)
+  return ripemd160.hexdigest(y)
 
 
 
