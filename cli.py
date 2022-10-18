@@ -4,6 +4,7 @@ import sys
 import argparse
 import logging
 import binascii
+import json
 
 
 
@@ -87,8 +88,18 @@ def main():
   )
 
   parser.add_argument(
-    '--private-key-hex-file', dest='private_key_hex_file',
-    help="Path to file that contains a private key in hex string form.",
+    '--private-keys-file', dest='private_keys_file',
+    help="Path to JSON file that contains one or more private keys in hex string form.",
+  )
+
+  parser.add_argument(
+    '--public-key-hex', dest='public_key_hex',
+    help="A public key in hex string form.",
+  )
+
+  parser.add_argument(
+    '--signature-hex', dest='signature_hex',
+    help="A signature in hex string form.",
   )
 
   parser.add_argument(
@@ -138,17 +149,22 @@ def main():
   if not a.log_to_file:
     a.log_file = None
 
-  if a.task in ['get_private_key_wif', 'get_address']:
-    msg1 = "One of these arguments must be supplied: --private_key_hex '<string_value>' or --private_key_hex_file '<file_path>'"
-    msg2 = "Either --private_key_hex '<string_value>' or --private_key_hex_file '<file_path>' must be supplied, but not both."
-    if not a.private_key_hex and not a.private_key_hex_file:
+  single_private_key_tasks = [
+    'get_private_key_wif',
+    'get_public_key',
+    'get_address',
+  ]
+  if a.task in single_private_key_tasks:
+    msg1 = "One of these arguments must be supplied: --private_key_hex '<string_value>' or --private_keys_file '<file_path>'"
+    msg2 = "Either --private_key_hex '<string_value>' or --private_keys_file '<file_path>' must be supplied, but not both."
+    if not a.private_key_hex and not a.private_keys_file:
       raise ValueError(msg1)
-    if a.private_key_hex and a.private_key_hex_file:
+    if a.private_key_hex and a.private_keys_file:
       raise ValueError(msg2)
-    if a.private_key_hex_file:
-      a.private_key_hex = open(a.private_key_hex_file).read()
+    if a.private_keys_file:
+      a.private_keys = json.load(a.private_keys_file)
 
-  if a.task == 'sign':
+  if a.task == 'sign_data':
     msg1 = "One of these arguments must be supplied: --data '<string_value>' or --data_file '<file_path>'"
     msg2 = "Either --data '<string_value>' or --data_file '<file_path>' must be supplied, but not both."
     if not a.data and not a.data_file:
@@ -175,8 +191,10 @@ get_private_key_wif
 get_public_key
 get_address
 sign_data
+verify_signature
 create_transaction
 sign_transaction
+verify_signed_transaction
 """.split()
   if a.task not in tasks:
     msg = "Unrecognised task: {}".format(a.task)
@@ -258,17 +276,24 @@ def sign_data(a):
   private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
   signature_hex = ecdsa_python3.create_deterministic_signature(private_key_hex, data_hex)
   print(signature_hex)
-  # Verify the signature as a double-check.
+  # Double-check signature by default.
   public_key_hex = ecdsa_python3.private_key_hex_to_public_key_hex(private_key_hex)
   valid_signature = ecdsa_python3.verify_signature(public_key_hex, data_hex, signature_hex)
   if not valid_signature:
-    print("Invalid signature")
+    raise ValueError("Invalid signature!")
 
 
 
 
 def verify_signature(a):
-  pass
+  data_ascii = a.data
+  v.validate_string_is_printable_ascii(data_ascii)
+  data_hex = hexlify(data_ascii.encode()).decode('ascii')
+  valid_signature = ecdsa_python3.verify_signature(a.public_key_hex, data_hex, a.signature_hex)
+  if valid_signature:
+    print("Valid signature.")
+  else:
+    print("Invalid signature!")
 
 
 
