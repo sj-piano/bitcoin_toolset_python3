@@ -297,8 +297,13 @@ def validate_hex_length(s, n, name=None, location=None, kind=None):
     raise ValueError(msg)
 
 
+
+
 def validate_hex(s, name=None, location=None, kind='hex'):
   validate_string(s, name, location, kind)
+  n = len(s)
+  if n % 2 != 0:
+    raise ValueError
   # find indices of non-hex characters in the string.
   indices = [i for i in range(len(s)) if s[i] not in hex_digits]
   if len(indices) > 0:
@@ -331,12 +336,12 @@ def validate_string_is_positive_integer(
   validate_string(s, name, location, kind)
   if s == '0':
     raise ValueError('0 is not a positive number.')
-  # find indices of non-digit characters in the string.
+  # Find indices of non-digit characters in the string.
   indices = [i for i in range(len(s)) if not s[i].isdigit()]
   if len(indices) > 0:
     non_digit_chars = [s[i] for i in indices]
-    msg = "where the chars at indices {} (with values {}) are not digits.".format(indices, ','.join(non_digit_chars))
-    msg = build_error_msg(msg, s, name, non_digit_chars, kind)
+    msg = "where the chars at indices {} (with values {}) are not digits.".format(indices, non_digit_chars)
+    msg = build_error_msg(msg, s, name, location, kind)
     raise ValueError(msg)
 
 
