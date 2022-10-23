@@ -1,12 +1,17 @@
 # Imports
 import logging
-import pkgutil
 
 
 
 
 # Relative imports
 from .. import util
+
+
+
+
+# Shortcuts
+v = util.validate
 
 
 
@@ -46,4 +51,6 @@ def hello():
   deb('Log statement at DEBUG level')
   print('hello world')
   return 'hello world'
+
+
 
