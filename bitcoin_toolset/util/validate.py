@@ -242,10 +242,12 @@ def validate_whole_number(n, name=None, location=None, kind='whole_number'):
 wn = validate_whole_number
 
 
+
+
 def validate_positive_integer(n, name=None, location=None, kind='positive_integer'):
   validate_integer(n, name, location, kind)
-  if n < 0:
-    msg = "which is less than 0."
+  if n < 1:
+    msg = "which is less than 1."
     msg = build_error_msg(msg, n, name, location, kind)
     raise ValueError(msg)
 
