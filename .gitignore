@@ -1,5 +1,7 @@
 # User additions
 tmp/
+cli_input/
+cli_output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
