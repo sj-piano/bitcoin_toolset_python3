@@ -5,6 +5,7 @@ import argparse
 import logging
 import binascii
 import json
+import itertools
 
 
 
@@ -20,10 +21,8 @@ import bitcoin_toolset
 from os.path import isdir, isfile, join
 util = bitcoin_toolset.util
 v = util.validate
-remove_whitespace = util.misc.remove_whitespace
 hexlify = binascii.hexlify
 submodules = bitcoin_toolset.submodules
-ecdsa_python3 = submodules.ecdsa_python3
 
 
 
@@ -77,43 +76,64 @@ def main():
   )
 
   parser.add_argument(
-    '-t', '--task',
+    '-t', '--task', type=str,
     help="Task to perform (default: '%(default)s').",
     default='hello',
   )
 
-  parser.add_argument(
-    '--private-key-hex', dest='private_key_hex',
+  group = parser.add_mutually_exclusive_group()
+
+  group.add_argument(
+    '--private-key-hex', dest='private_key_hex', type=str,
+    nargs='+', action='append',
     help="A private key in hex string form.",
   )
 
-  parser.add_argument(
-    '--private-keys-file', dest='private_keys_file',
-    help="Path to JSON file that contains one or more private keys in hex string form.",
+  group.add_argument(
+    '--private-key-file', dest='private_key_file', type=str,
+    nargs='+', action='append',
+    help="Path to file that contains a private key in hex string form.",
+  )
+
+  group.add_argument(
+    '--private-key-dir', dest='private_key_dir', type=str,
+    help="Path to directory that contains .txt files that each contain a single private key.",
   )
 
   parser.add_argument(
-    '--public-key-hex', dest='public_key_hex',
+    '--public-key-hex', dest='public_key_hex', type=str,
     help="A public key in hex string form.",
   )
 
   parser.add_argument(
-    '--signature-hex', dest='signature_hex',
+    '--signature-hex', dest='signature_hex', type=str,
     help="A signature in hex string form.",
   )
 
-  parser.add_argument(
-    '--data',
+  group = parser.add_mutually_exclusive_group()
+
+  group.add_argument(
+    '--data', type=str,
     help="Data string.",
   )
 
-  parser.add_argument(
-    '--data-file', dest='data_file',
+  group.add_argument(
+    '--data-file', dest='data_file', type=str,
     help="Path to file that contains a data string.",
   )
 
   parser.add_argument(
-    '-l', '--log-level', type=str, dest='log_level',
+    '--input-file', dest='input_file', type=str,
+    help="Path to file that contains the available inputs for the transaction.",
+  )
+
+  parser.add_argument(
+    '--design-file', dest='design_file', type=str,
+    help="Path to file that contains the available inputs for the transaction.",
+  )
+
+  parser.add_argument(
+    '-l', '--log-level', dest='log_level', type=str,
     choices=['debug', 'info', 'warning', 'error'],
     help="Choose logging level (default: '%(default)s').",
     default='error',
@@ -138,41 +158,91 @@ def main():
   )
 
   parser.add_argument(
-    '-z', '--log-file', dest='log_file',
+    '-z', '--log-file', dest='log_file', type=str,
     help="The path to the file that log output will be written to.",
     default='log_bitcoin_toolset.txt',
   )
 
   a = parser.parse_args()
 
+  print_args = 0
+  if print_args:
+    print()
+    for k in sorted(a.__dict__.keys()):
+      print(k, '=', a.__dict__[k])
+    print()
+
   # Check and analyse arguments
   if not a.log_to_file:
     a.log_file = None
 
-  single_private_key_tasks = [
+  if a.data_file:
+    a.data = open(a.data_file).read()
+
+  # Load the private key(s) from the provided source.
+  # - Note: Only one source can be supplied.
+  a.private_keys_hex = []
+
+  if a.private_key_hex:
+    a.private_keys_hex = list(itertools.chain(*a.private_key_hex))
+
+  if a.private_key_file:
+    a.private_key_files = list(itertools.chain(*a.private_key_file))
+    private_keys_hex = [open(x).read().strip() for x in a.private_key_files]
+    a.private_keys_hex.extend(private_keys_hex)
+
+  if a.private_key_dir:
+    a.private_key_files = [os.path.join(a.private_key_dir, x) for x in os.listdir(a.private_key_dir) if os.path.splitext(x)[1] == '.txt']
+    private_keys_hex = [open(x).read().strip() for x in a.private_key_files]
+    a.private_keys_hex.extend(private_keys_hex)
+
+  tasks_single_private_key = [
     'get_private_key_wif',
     'get_public_key',
     'get_address',
+    'sign_data',
   ]
-  if a.task in single_private_key_tasks:
-    msg1 = "One of these arguments must be supplied: --private_key_hex '<string_value>' or --private_keys_file '<file_path>'"
-    msg2 = "Either --private_key_hex '<string_value>' or --private_keys_file '<file_path>' must be supplied, but not both."
-    if not a.private_key_hex and not a.private_keys_file:
-      raise ValueError(msg1)
-    if a.private_key_hex and a.private_keys_file:
-      raise ValueError(msg2)
-    if a.private_keys_file:
-      a.private_keys = json.load(a.private_keys_file)
+  if a.task in tasks_single_private_key:
+    assert len(a.private_keys_hex) == 1
+    a.private_key_hex = a.private_keys_hex[0]
 
-  if a.task == 'sign_data':
-    msg1 = "One of these arguments must be supplied: --data '<string_value>' or --data_file '<file_path>'"
-    msg2 = "Either --data '<string_value>' or --data_file '<file_path>' must be supplied, but not both."
-    if not a.data and not a.data_file:
-      raise ValueError(msg1)
-    if a.data and a.data_file:
-      raise ValueError(msg2)
-    if a.data_file:
-      a.data = open(a.data_file).read()
+  tasks_that_require_data = [
+    'sign_data',
+    'validate_unsigned_transaction_json',
+  ]
+
+  if a.task in tasks_that_require_data:
+    if not a.data:
+      z = '--data <data_string> --data-file <file_path>'
+      msg = 'One of these arguments must be supplied: {}'.format(z)
+      raise ValueError(msg)
+
+  tasks_that_sign_transactions = [
+    'create_unsigned_transaction_json',
+    'create_sign_and_verify_transaction_hex',
+    'create_transaction',
+  ]
+
+  a.inputs = None
+  a.design = None
+  if a.task in tasks_that_sign_transactions:
+    if not a.input_file:
+      z = "--input-file '<input_file>'"
+      msg = 'This argument must be supplied: {}'.format(z)
+      raise ValueError(msg)
+    if not a.design_file:
+      z = "--design-file '<design_file>'"
+      msg = 'This argument must be supplied: {}'.format(z)
+      raise ValueError(msg)
+    try:
+      a.inputs = json.load(open(a.input_file))
+    except Exception as e:
+      raise e
+    try:
+      a.design = json.load(open(a.design_file))
+    except Exception as e:
+      raise e
+
 
 
 
@@ -191,15 +261,24 @@ get_private_key_wif
 get_public_key
 get_address
 sign_data
-verify_signature
+verify_data_signature
+create_unsigned_transaction_json
+validate_unsigned_transaction_json
+create_signed_transaction_json
+verify_signed_transaction_json
+create_signed_transaction_hex
+verify_signed_transaction_hex
+decode_signed_transaction_hex
+create_sign_and_verify_transaction_hex
 create_transaction
-sign_transaction
-verify_signed_transaction
 """.split()
   if a.task not in tasks:
     msg = "Unrecognised task: {}".format(a.task)
     msg += "\nTask list: {}".format(tasks)
     stop(msg)
+  if a.task not in globals():
+    msg = "Task function '{}' not found.".format(a.task)
+    raise NameError(msg)
 
   # Run top-level function (i.e. the appropriate task).
   globals()[a.task](a)
@@ -246,24 +325,21 @@ def get_python_version(a):
 
 
 def get_private_key_wif(a):
-  private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
-  private_key_wif = bitcoin_toolset.code.basic.private_key_hex_to_wif(private_key_hex)
+  private_key_wif = bitcoin_toolset.code.basic.private_key_hex_to_wif(a.private_key_hex)
   print(private_key_wif)
 
 
 
 
 def get_public_key(a):
-  private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
-  public_key_hex = ecdsa_python3.private_key_hex_to_public_key_hex(private_key_hex)
+  public_key_hex = bitcoin_toolset.code.basic.private_key_hex_to_public_key_hex(a.private_key_hex)
   print(public_key_hex)
 
 
 
 
 def get_address(a):
-  private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
-  address = bitcoin_toolset.code.basic.private_key_hex_to_address(private_key_hex)
+  address = bitcoin_toolset.code.basic.private_key_hex_to_address(a.private_key_hex)
   print(address)
 
 
@@ -273,23 +349,22 @@ def sign_data(a):
   data_ascii = a.data
   v.validate_string_is_printable_ascii(data_ascii)
   data_hex = hexlify(data_ascii.encode()).decode('ascii')
-  private_key_hex = util.misc.format_private_key_hex(a.private_key_hex)
-  signature_hex = ecdsa_python3.create_deterministic_signature(private_key_hex, data_hex)
+  signature_hex = bitcoin_toolset.code.basic.create_deterministic_signature(a.private_key_hex, data_hex)
   print(signature_hex)
   # Double-check signature by default.
-  public_key_hex = ecdsa_python3.private_key_hex_to_public_key_hex(private_key_hex)
-  valid_signature = ecdsa_python3.verify_signature(public_key_hex, data_hex, signature_hex)
+  public_key_hex = bitcoin_toolset.code.basic.private_key_hex_to_public_key_hex(a.private_key_hex)
+  valid_signature = bitcoin_toolset.code.basic.verify_signature(public_key_hex, data_hex, signature_hex)
   if not valid_signature:
     raise ValueError("Invalid signature!")
 
 
 
 
-def verify_signature(a):
+def verify_data_signature(a):
   data_ascii = a.data
   v.validate_string_is_printable_ascii(data_ascii)
   data_hex = hexlify(data_ascii.encode()).decode('ascii')
-  valid_signature = ecdsa_python3.verify_signature(a.public_key_hex, data_hex, a.signature_hex)
+  valid_signature = bitcoin_toolset.code.basic.verify_signature(a.public_key_hex, data_hex, a.signature_hex)
   if valid_signature:
     print("Valid signature.")
   else:
@@ -298,20 +373,114 @@ def verify_signature(a):
 
 
 
+def create_unsigned_transaction_json(a):
+  tx_unsigned = bitcoin_toolset.code.create_transaction.create_transaction(a)
+  tx_unsigned_json = tx_unsigned.to_json()
+  print(tx_unsigned_json)
+  # Validate transaction by default by rebuilding it.
+  tx_unsigned_2 = bitcoin_toolset.code.transaction.Transaction.from_json(tx_unsigned_json)
+
+
+
+
+def validate_unsigned_transaction_json(a):
+  tx_unsigned_json = a.data
+  tx_unsigned = bitcoin_toolset.code.transaction.Transaction.from_json(tx_unsigned_json)
+  print("Unsigned transaction data validated.")
+
+
+
+
+def create_signed_transaction_json(a):
+  # Note: When the unsigned tx is built from the JSON data, it is validated.
+  tx_unsigned_json = a.data
+  tx_unsigned = bitcoin_toolset.code.transaction.Transaction.from_json(tx_unsigned_json)
+  #deb(tx_unsigned)
+  tx_signed = tx_unsigned.sign(a.private_keys_hex)
+  #deb(tx_signed.to_json())
+  print(tx_signed.to_json())
+  valid_signatures = tx_signed.verify()
+  if not valid_signatures:
+    raise ValueError("Invalid signature(s)!")
+
+
+
+
+def verify_signed_transaction_json(a):
+  tx_signed_json = a.data
+  tx_signed = bitcoin_toolset.code.transaction.Transaction.from_json(tx_signed_json)
+  valid_signatures = tx_signed.verify()
+  if valid_signatures:
+    print("Valid signature(s).")
+  else:
+    print("Invalid signature(s)!")
+
+
+
+
+def create_signed_transaction_hex(a):
+  tx_signed_json = a.data
+  tx_signed = bitcoin_toolset.code.transaction.Transaction.from_json(tx_signed_json)
+  valid_signatures = tx_signed.verify()
+  if not valid_signatures:
+    raise ValueError
+  print(tx_signed.to_hex_signed_form())
+
+
+
+
+def decode_signed_transaction_hex(a):
+  tx_signed_hex = a.data.strip()
+  tx_signed = bitcoin_toolset.code.transaction.Transaction.from_hex_signed(tx_signed_hex)
+  valid_signatures = tx_signed.verify()
+  print(tx_signed.to_json())
+  if not valid_signatures:
+    raise ValueError("Invalid signature(s)!")
+
+
+
+
+def verify_signed_transaction_hex(a):
+  tx_signed_hex = a.data.strip()
+  tx_signed = bitcoin_toolset.code.transaction.Transaction.from_hex_signed(tx_signed_hex)
+  valid_signatures = tx_signed.verify()
+  if not valid_signatures:
+    raise ValueError("Invalid signature(s)!")
+  print("Valid signature(s).")
+
+
+
+
+def create_sign_and_verify_transaction_hex(a):
+  # - Create tx
+  tx_unsigned = bitcoin_toolset.code.create_transaction.create_transaction(a)
+  tx_unsigned_json = tx_unsigned.to_json()
+  #print(tx_unsigned_json)
+  # - Validate tx (by rebuilding it)
+  tx_unsigned_2 = bitcoin_toolset.code.transaction.Transaction.from_json(tx_unsigned_json)
+  # - Sign tx
+  tx_signed = tx_unsigned.sign(a.private_keys_hex)
+  #deb(tx_signed.to_json())
+  # - Verify tx
+  valid_signatures = tx_signed.verify()
+  if not valid_signatures:
+    raise ValueError("Invalid signature(s)!")
+  # - Get hex form of signed tx
+  tx_signed_hex = tx_signed.to_hex_signed_form()
+  # - Decode and verify signed tx hex.
+  tx_signed_2 = bitcoin_toolset.code.transaction.Transaction.from_hex_signed(tx_signed_hex)
+  valid_signatures_2 = tx_signed_2.verify()
+  #print(tx_signed_2.to_json())
+  if not valid_signatures_2:
+    raise ValueError("Signed tx hex: Invalid signature(s)!")
+  # Print the signed tx hex.
+  print(tx_signed_hex)
+
+
+
+
 def create_transaction(a):
-  pass
-
-
-
-
-def sign_transaction(a):
-  pass
-
-
-
-
-def verify_signed_transaction(a):
-  pass
+  return create_sign_and_verify_transaction_hex(a)
 
 
 
