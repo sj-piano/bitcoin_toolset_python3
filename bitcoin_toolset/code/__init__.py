@@ -8,6 +8,10 @@ import logging
 from .. import util
 from . import hello
 from . import basic
+from . import create_transaction
+from . import transaction
+from . import transaction_input
+from . import transaction_output
 
 
 
@@ -51,4 +55,30 @@ def setup(
     log_timestamp = log_timestamp,
     log_file = log_file,
   )
+  create_transaction.setup(
+    log_level = log_level,
+    debug = debug,
+    log_timestamp = log_timestamp,
+    log_file = log_file,
+  )
+  transaction.setup(
+    log_level = log_level,
+    debug = debug,
+    log_timestamp = log_timestamp,
+    log_file = log_file,
+  )
+  transaction_input.setup(
+    log_level = log_level,
+    debug = debug,
+    log_timestamp = log_timestamp,
+    log_file = log_file,
+  )
+  transaction_output.setup(
+    log_level = log_level,
+    debug = debug,
+    log_timestamp = log_timestamp,
+    log_file = log_file,
+  )
+
+
 
