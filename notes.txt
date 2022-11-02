@@ -1,0 +1,17 @@
+
+
+
+
+Working principles:
+- All data values must be strings. Later, can convert them to numeric types if that's useful.
+- Leave amounts in satoshi for internal calculations. Convert to bitcoin only when reporting data to user.
+
+
+
+My working definition of a standard transaction:
+- It has at least one input and at least one output.
+- All input and output addresses are Pay-To-Public-Key-Hash (P2PKH).
+- All input scriptSigs contain uncompressed public keys.
+
+
+
