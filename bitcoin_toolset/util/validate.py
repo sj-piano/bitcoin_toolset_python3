@@ -143,7 +143,7 @@ def validate_string_is_printable_ascii(x, name=None, location=None, kind='string
 
 def validate_string_is_whole_number_or_decimal(
     s, dp=None, name=None, location=None, kind='integer',
-  ):
+    ):
   # 's' only needs to pass one check out of the two.
   stored_exceptions = []
   success = 0
@@ -264,6 +264,7 @@ def validate_integer(n, name=None, location=None, kind='integer'):
     raise TypeError(msg)
 
 
+validate_int = validate_integer
 i = validate_integer
 
 
@@ -303,12 +304,19 @@ def validate_hex(s, name=None, location=None, kind='hex'):
   validate_string(s, name, location, kind)
   n = len(s)
   if n % 2 != 0:
-    raise ValueError
+    msg = "whose length is not an even number ({} chars).".format(n)
+    msg = build_error_msg(msg, s, name, location, kind)
+    raise ValueError(msg)
   # find indices of non-hex characters in the string.
   indices = [i for i in range(len(s)) if s[i] not in hex_digits]
   if len(indices) > 0:
-    non_hex_chars = [s[i] for i in indices]
-    msg = "where the chars at indices {} (with values {}) are not hex chars.".format(indices, ','.join(non_hex_chars))
+    non_hex_chars = []
+    for i in indices:
+      c = s[i]
+      if c == '\n':
+        c = '\\n'
+      non_hex_chars.append(c)
+    msg = "where the chars at indices {} (with values '{}') are not hex chars.".format(indices, ','.join(non_hex_chars))
     msg = build_error_msg(msg, s, name, location, kind)
     raise ValueError(msg)
 
