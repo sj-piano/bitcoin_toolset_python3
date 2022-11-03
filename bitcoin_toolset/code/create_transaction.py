@@ -339,7 +339,7 @@ Output {i}:
   # [SECTION]: Manage fee
   n_inputs = len(inputs)
   n_outputs = len(outputs)
-  estimated_tx_size = estimate_transaction_size(n_inputs, n_outputs)
+  estimated_tx_size = basic.estimate_transaction_size(n_inputs, n_outputs)
   msg = "Estimated transaction size: {} bytes".format(estimated_tx_size)
   log(msg)
   msg = 'Fee type: {}'.format(fee_type)
@@ -402,42 +402,8 @@ The fee is greater than the change amount.
   # [SECTION]: Create transaction
   tx = transaction.Transaction.create(selected_inputs, outputs)
   log("Transaction created.")
+  tx.change_address = change_address
   return tx
-
-
-
-
-def estimate_transaction_size(n_inputs, n_outputs):
-  # A standard signed transaction contains:
-  # - version (4 bytes)
-  # - input_count (1-byte var_int) [1 byte if number of inputs is <= 252]
-  # - concatenated inputs (with signatures)
-  # - output_count (1-byte var_int) [1 byte if number of outputs is <= 252]
-  # - concatenated outputs
-  # - block lock time (4 bytes)
-  # A standard input contains:
-  # - previous_output_hash (32 bytes)
-  # - previous_output_index (4 bytes)
-  # - script_length (1-byte var_int)
-  # - scriptSig [approximately 138 bytes]
-  # - sequence (4 bytes)
-  # A standard output contains:
-  # - value (8 bytes)
-  # - script_length (1-byte var_int)
-  # - scriptPubKey (25 bytes)
-  input_count_bytes = basic.hex_len(basic.int_to_var_int(n_inputs))
-  inputs_bytes = n_inputs * (32 + 4 + 1 + 138 + 4)
-  output_count_bytes = basic.hex_len(basic.int_to_var_int(n_outputs))
-  outputs_bytes = n_outputs * (8 + 1 + 25)
-  estimated_tx_size = (
-    4
-    + input_count_bytes
-    + inputs_bytes
-    + output_count_bytes
-    + outputs_bytes
-    + 4
-  )
-  return estimated_tx_size
 
 
 
