@@ -140,7 +140,7 @@ address satoshi_amount bitcoin_amount
     v.validate_int(d['script_length_int'])
     v.validate_hex(d['script_pub_key'])
     basic.validate_bitcoin_address(d['address'])
-    basic.validate_bitcoin_amount(d['bitcoin_amount'])
+    basic.validate_positive_bitcoin_amount(d['bitcoin_amount'])
     # Cross-checks
     assert d['script_length_int'] == basic.var_int_to_int(d['script_length'])
     bitcoin_amount = basic.satoshi_to_bitcoin(d['satoshi_amount'])

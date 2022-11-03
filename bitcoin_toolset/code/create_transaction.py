@@ -317,11 +317,7 @@ Output {i}:
   log(msg)
   change = change_output.satoshi_amount
   spend = total_selected_input - change
-  if spend == 0:
-    # basic.satoshi_to_bitcoin doesn't accept a 0-value input.
-    spend_bitcoin = '0.00000000'
-  else:
-    spend_bitcoin = basic.satoshi_to_bitcoin(spend)
+  spend_bitcoin = basic.satoshi_to_bitcoin(spend)
   msg = "Spend amount: {} bitcoin ({} satoshi)"
   msg = msg.format(spend_bitcoin, spend)
   log(msg)
@@ -431,7 +427,7 @@ address transaction_id previous_output_index bitcoin_amount
     basic.validate_bitcoin_address(input_['address'])
     v.validate_hex_length(input_['transaction_id'], 32)
     v.validate_whole_number(input_['previous_output_index'])
-    basic.validate_bitcoin_amount(input_['bitcoin_amount'])
+    basic.validate_positive_bitcoin_amount(input_['bitcoin_amount'])
 
 
 
@@ -488,7 +484,7 @@ address bitcoin_amount
       received2 = list(output.keys())
       v.validate_lists_are_identical(received2, expected2)
       basic.validate_bitcoin_address(output['address'])
-      basic.validate_bitcoin_amount(output['bitcoin_amount'])
+      basic.validate_positive_bitcoin_amount(output['bitcoin_amount'])
       output['bitcoin_amount'] = basic.ensure_8_decimal_places(output['bitcoin_amount'])
 
     # Validate fee / fee_rate

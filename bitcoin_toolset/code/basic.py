@@ -538,12 +538,23 @@ def bitcoin_to_satoshi(s):
 
 
 
+def validate_positive_bitcoin_amount(s):
+  # Doesn't accept zero amount.
+  v.validate_string(s)
+  if s.replace('.', '').replace('0', '') == '':
+    msg = "Amount ('{}') cannot be 0.".format(s)
+    raise ValueError(msg)
+  validate_bitcoin_amount(s)
+
+
+
+
 def validate_bitcoin_amount(s):
   # Example values:
   # 1, 2, 1.1, 1.0001, 0.00000001, 0.00000000, 0.12345678
   v.validate_string(s)
   max_amount = 21*(10**6)  # 21 million bitcoin
-  min_amount = 0.00000001  # 1 satoshi
+  min_amount = 0.00000000  # 0 satoshi
   # Amount can contain 0 or 1 period.
   if s.count('.') not in [0, 1]:
     msg = "Amount contains {} periods ('.'). It must contain either 1 or 0 periods. Amount: {}".format(s.count('.'), s)

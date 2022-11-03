@@ -235,7 +235,7 @@ address txid satoshi_amount bitcoin_amount
     previous_output_hash = basic.reverse_hex_order(d['txid'])
     assert previous_output_hash == d['previous_output_hash']
     v.validate_integer(d['satoshi_amount'])
-    basic.validate_bitcoin_amount(d['bitcoin_amount'])
+    basic.validate_positive_bitcoin_amount(d['bitcoin_amount'])
     bitcoin_amount = basic.satoshi_to_bitcoin(d['satoshi_amount'])
     assert bitcoin_amount == d['bitcoin_amount']
     # Create the instance and save the instance variables.
