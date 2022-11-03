@@ -2,6 +2,7 @@
 import logging
 from collections import OrderedDict
 import json
+from decimal import Decimal
 
 
 
@@ -172,6 +173,7 @@ class Transaction:
     self.hash_type_4_byte = "01000000"  # 4 bytes (little-endian)
     # Properties that go into the signed transaction:
     self.hash_type_1_byte = "01"
+    self.change_address = None
 
 
   def __str__(self):
@@ -202,9 +204,65 @@ class Transaction:
     return signed
 
 
+  @property
+  def input_values_known(self):
+    return all(x.satoshi_amount is not None for x in self.inputs)
+
+  @property
+  def total_input(self):
+    if not self.input_values_known:
+      return None
+    return sum([x.satoshi_amount for x in self.inputs])
+
+
+  @property
+  def total_output(self):
+    return sum([x.satoshi_amount for x in self.outputs])
+
+
+  @property
+  def fee(self):
+    if not self.input_values_known:
+      return None
+    return self.total_input - self.total_output
+
+
+  @property
+  def change(self):
+    if not self.change_address:
+      return None
+    change = sum([x.satoshi_amount for x in self.outputs if x.address == self.change_address])
+    return change
+
+
   def to_dict(self):
-    d = OrderedDict()
-    d.update({
+
+    n_inputs = len(self.inputs)
+    n_outputs = len(self.outputs)
+    estimated_size_bytes = basic.estimate_transaction_size(n_inputs, n_outputs)
+
+    def fee_rate_satoshi_to_bitcoin(fee_rate_satoshi):
+      fee_rate_bitcoin = Decimal(fee_rate_satoshi) / (10 ** 8)
+      EIGHT_PLACES = Decimal('0.00000001')
+      fee_rate_bitcoin = fee_rate_bitcoin.quantize(EIGHT_PLACES)
+      fee_rate_bitcoin = '{:8f}'.format(fee_rate_bitcoin)
+      return fee_rate_bitcoin
+
+    # Default values.
+    total_input_bitcoin = None
+    fee_bitcoin = None
+    estimated_fee_rate_satoshi = None
+    estimated_fee_rate_bitcoin = None
+
+    # If input values are known, we can calculate these derivative values.
+    if self.input_values_known:
+      total_input_bitcoin = basic.satoshi_to_bitcoin(self.total_input)
+      fee_bitcoin = basic.satoshi_to_bitcoin(self.fee)
+      estimated_fee_rate = Decimal(self.fee) / estimated_size_bytes
+      estimated_fee_rate_satoshi = '{:.4f}'.format(estimated_fee_rate)
+      estimated_fee_rate_bitcoin = fee_rate_satoshi_to_bitcoin(estimated_fee_rate_satoshi)
+
+    d = OrderedDict({
       'version': self.version,
       'input_count': self.input_count,
       'inputs': [x.to_dict() for x in self.inputs],
@@ -214,7 +272,51 @@ class Transaction:
       'hash_type_4_byte': self.hash_type_4_byte,
       'hash_type_1_byte': self.hash_type_1_byte,
       'signed': self.signed,
+      'total_input': {
+        'satoshi_amount': self.total_input,
+        'bitcoin_amount': total_input_bitcoin,
+      },
+      'total_output': {
+        'satoshi_amount': self.total_output,
+        'bitcoin_amount': basic.satoshi_to_bitcoin(self.total_output),
+      },
+      'fee': {
+        'satoshi_amount': self.fee,
+        'bitcoin_amount': fee_bitcoin,
+      },
+      'change_address': self.change_address,
+      'change': {
+        'satoshi_amount': None,
+        'bitcoin_amount': None,
+      },
+      'estimated_size_bytes': estimated_size_bytes,
+      'estimated_fee_rate' : {
+        'satoshi_per_byte': estimated_fee_rate_satoshi,
+        'bitcoin_per_byte': estimated_fee_rate_bitcoin,
+      },
+      'size_bytes': None,
+      'fee_rate' : {
+        'satoshi_amount': None,
+        'bitcoin_amount': None,
+      },
     })
+    # Change address is known only when we use create_transaction.py.
+    if self.change_address:
+      d['change'] = {
+        'satoshi_amount': self.change,
+        'bitcoin_amount': basic.satoshi_to_bitcoin(self.change),
+      }
+    if self.signed:
+      size_bytes = basic.hex_len(self.to_hex_signed_form())
+      d['size_bytes'] = size_bytes
+      if self.fee is not None:
+        fee_rate = Decimal(self.fee) / size_bytes
+        fee_rate_satoshi = '{:.4f}'.format(fee_rate)
+        fee_rate_bitcoin = fee_rate_satoshi_to_bitcoin(fee_rate_satoshi)
+        d['fee_rate'] = {
+          'satoshi_per_byte': fee_rate_satoshi,
+          'bitcoin_per_byte': fee_rate_bitcoin,
+        }
     return d
 
 
