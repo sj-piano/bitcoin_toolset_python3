@@ -260,13 +260,11 @@ Sample `design.json`:
 ```
 
 
-change_address: Inputs will be selected from the available list until their combined value exceeds the total output value. Any surplus value (minus the fee) will be sent to the change address.
+change_address: Inputs will be selected from the available list until their combined value exceeds the total output value + the fee value. Any surplus value will be sent to the change address.
 
 fee: The transaction fee in satoshi.
 
 fee_rate: An alternative option to `fee`. The transaction fee rate in satoshi/byte.
-
-Note: If the change value is not big enough to pay the fee, and there are still unused inputs available, these inputs will be added one-by-one to the transaction until their combined value (plus the change amount) exceeds the required fee. Any surplus value will be sent to the change address.
 
 max_fee: The maximum fee in satoshi that is permitted in the transaction.
 
