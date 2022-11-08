@@ -54,12 +54,27 @@ def setup(
 
 
 
+
+
+
+
+
+
+class OutputValueNotCovered(Exception): pass
+class OutputAndFeeValueNotCovered(Exception): pass
+
+
+
+
 # This "rocket launch management" function handles many important transaction aspects and decisions that are not part of the transaction object itself but play a role in its creation.
 # Examples: fee rate, maximum spend percentage,
 # input selection approach, allow_duplicate_output_address
 # We also validate all the argument data.
 
+
 def create_transaction(a):
+
+
 
 
   # [SECTION]: Validate arguments.
@@ -91,6 +106,8 @@ inputs design
   input_selection_approach = design['input_selection_approach'] if 'input_selection_approach' in received else ["smallest_first"]
 
 
+
+
   # [SECTION]: Convert various arguments.
   max_spend_percentage = float(max_spend_percentage)
   # fee is an integer.
@@ -104,6 +121,8 @@ inputs design
     x['satoshi_amount'] = basic.bitcoin_to_satoshi(x['bitcoin_amount'])
   for x in a.outputs:
     x['satoshi_amount'] = basic.bitcoin_to_satoshi(x['bitcoin_amount'])
+
+
 
 
   # [SECTION]: Report input and output data.
@@ -134,6 +153,8 @@ Output {i}:
     log(msg)
 
 
+
+
   # [SECTION]: Create input and output instances.
   inputs = []  # Note that this is different from a.inputs.
   for x in a.inputs:
@@ -144,7 +165,8 @@ Output {i}:
       satoshi_amount = x['satoshi_amount'],
     )
     inputs.append(input_)
-  log("Number of inputs: {}".format(len(inputs)))
+  n_inputs = len(inputs)
+  log("Number of inputs: {}".format(n_inputs))
   outputs = []  # Note that this is different from a.outputs.
   for x in a.outputs:
     output = transaction_output.TransactionOutput.create(
@@ -152,7 +174,10 @@ Output {i}:
       satoshi_amount = x['satoshi_amount'],
     )
     outputs.append(output)
-  log("Number of outputs: {}".format(len(outputs)))
+  n_outputs = len(outputs)
+  log("Number of outputs: {}".format(n_outputs))
+
+
 
 
   # [SECTION]: Report aspects of the inputs and outputs.
@@ -167,8 +192,9 @@ Output {i}:
     satoshi = input_addresses[address]
     bitcoin = basic.satoshi_to_bitcoin(satoshi)
     count = sum(1 for x in inputs if x.address == address)
-    msg += "\n- {}: {} bitcoin ({} satoshi), {} inputs."
-    msg = msg.format(address, bitcoin, satoshi, count)
+    plural = 's' if count > 1 else ''
+    msg += "\n- {}: {} bitcoin ({} satoshi), {} input{}."
+    msg = msg.format(address, bitcoin, satoshi, count, plural)
   log(msg)
   # Report each output address and the total value to be sent to each.
   output_addresses = defaultdict(int)
@@ -191,150 +217,11 @@ Output {i}:
       raise ValueError(msg)
 
 
-  # [SECTION]: Select inputs, using the supplied input_selection_approach(es), until their combined value exceeds the total output value.
-  selected_inputs = []
-  total_selected_input = 0
-  total_input = sum([x.satoshi_amount for x in inputs])
-  total_input_bitcoin = basic.satoshi_to_bitcoin(total_input)
-  total_output = sum([x.satoshi_amount for x in outputs])
-  total_output_bitcoin = basic.satoshi_to_bitcoin(total_output)
-  msg = "Total input value: {} bitcoin ({} satoshi)"
-  msg = msg.format(total_input_bitcoin, total_input)
-  log(msg)
-  msg = "Total output value: {} bitcoin ({} satoshi)"
-  msg = msg.format(total_output_bitcoin, total_output)
-  log(msg)
-
-  if total_input < total_output:
-    shortfall = total_output - total_input
-    shortfall_bitcoin = basic.satoshi_to_bitcoin(shortfall)
-    msg = "Total input value is less than total output value."
-    msg += "\n- Shortfall: {} bitcoin ({} satoshi)".format(shortfall_bitcoin, shortfall)
-    raise ValueError(msg)
-  elif total_input == total_output:
-    log("Total input value exactly matches total output value.")
-    selected_inputs = inputs
-  else:
-    surplus = total_input - total_output
-    surplus_bitcoin = basic.satoshi_to_bitcoin(surplus)
-    msg = "Total input value is greater than total output value."
-    msg += "\n- Surplus value: {} bitcoin ({} satoshi)"
-    msg = msg.format(surplus_bitcoin, surplus)
-    log(msg)
-    msg = "Selecting inputs according to input selection approaches {} until [total selected input value] exceeds [total output value]."
-    msg = msg.format(input_selection_approach)
-    log(msg)
-    if len(input_selection_approach) > 1:
-      raise NotImplementedError
-    approach = input_selection_approach[0]
-    # We create a new list of inputs that we can sort.
-    # - Note that the dicts inside are not duplicated.
-    inputs2 = inputs[:]
-    if approach == 'smallest_first':
-      inputs2.sort(key=lambda x: x.satoshi_amount)
-    else:
-      raise NotImplementedError
-    for input_ in inputs2:
-      total_selected_input += input_.satoshi_amount
-      selected_inputs.append(input_)
-      if total_selected_input >= total_output:
-        break
-
-  total_selected_input = sum([x.satoshi_amount for x in selected_inputs])
-  total_selected_input_bitcoin = basic.satoshi_to_bitcoin(total_selected_input)
-  msg = "Total selected input value: {} bitcoin ({} satoshi)"
-  msg = msg.format(total_selected_input_bitcoin, total_selected_input)
-  log(msg)
-
-
-  # [SECTION]: Handle change.
-  # Send any change to the change address. Create a new tx output if necessary.
-  if total_selected_input == total_output:
-    log("Total selected input value exactly matches total output value.")
-  else:
-    surplus = total_selected_input - total_output
-    surplus_bitcoin = basic.satoshi_to_bitcoin(surplus)
-    msg = "Total selected input value is greater than total output value."
-    msg += "\n- Surplus value: {} bitcoin ({} satoshi)"
-    msg += "\n- This extra value will be sent to the change address."
-    msg += "\n- Change address: {}".format(change_address)
-    msg = msg.format(surplus_bitcoin, surplus)
-    log(msg)
-    # Assign any surplus input value to the change address.
-    change_output = None
-    change_outputs = [x for x in outputs if x.address == change_address]
-    if len(change_outputs) > 1:
-      raise ValueError
-    elif len(change_outputs) == 1:
-      change_output = change_outputs[0]
-      # Assign the surplus value to the change output.
-      old_amount = change_output.satoshi_amount
-      new_amount = old_amount + surplus
-      change_output.set_satoshi_amount(new_amount)
-      old_amount_bitcoin = basic.satoshi_to_bitcoin(old_amount)
-      msg = "Change address found within outputs."
-      msg += "\n- Old change amount: {} bitcoin ({} satoshi)"
-      msg = msg.format(old_amount, old_amount_bitcoin)
-      log(msg)
-    else:
-      # Create a new output for the change address if one doesn't already exist.
-      change_output = transaction_output.TransactionOutput.create(
-        address = change_address,
-        satoshi_amount = surplus,
-      )
-      # Place change_output at the start of the outputs list.
-      outputs.insert(0, change_output)
-      msg = "New output created to send change to change address."
-      log(msg)
-    # Recalculate total_output.
-    total_output = sum([x.satoshi_amount for x in outputs])
-    total_output_bitcoin = basic.satoshi_to_bitcoin(total_output)
-    msg = "New total output value: {} bitcoin ({} satoshi)"
-    msg = msg.format(total_output_bitcoin, total_output)
-    log(msg)
-  # Double-check.
-  if total_selected_input != total_output:
-    raise ValueError
-  change = change_output.satoshi_amount
-  change_bitcoin = basic.satoshi_to_bitcoin(change)
-  msg = "Change amount: {} bitcoin ({} satoshi)"
-  msg = msg.format(change, change_bitcoin)
-  log(msg)
-
-
-  # [SECTION]: Manage spending limit.
-  # Confirm that the amount that we are going to spend does not exceed the permitted limit.
-  # - Note that the permitted limit is the total available input value, not the total selected input value.
-  msg = "Maximum percentage of input value (prior to fee subtraction) that can be spent: {:.2f}%".format(max_spend_percentage)
-  msg += '\n- Note: "spend" == send bitcoin to any address that is not the change address.'
-  log(msg)
-  max_spend = max_spend_percentage / 100 * total_input
-  # Round up to the nearest satoshi.
-  max_spend = int(math.ceil(max_spend))
-  max_spend_bitcoin = basic.satoshi_to_bitcoin(max_spend)
-  msg = "Maximum spend amount: {} bitcoin ({} satoshi)"
-  msg = msg.format(max_spend_bitcoin, max_spend)
-  log(msg)
-  change = change_output.satoshi_amount
-  spend = total_selected_input - change
-  spend_bitcoin = basic.satoshi_to_bitcoin(spend)
-  msg = "Spend amount: {} bitcoin ({} satoshi)"
-  msg = msg.format(spend_bitcoin, spend)
-  log(msg)
-  spend_percentage = float(spend) / total_input * 100
-  msg = "The spend amount is {:.2f}% of the available input value.".format(spend_percentage)
-  log(msg)
-  if spend > max_spend:
-    msg = "Spend amount ({s} bitcoin) is greater than the maximum permitted spend amount ({m} bitcoin)."
-    msg = msg.format(s=spend_bitcoin, m=max_spend_bitcoin)
-    msg += " To spend this amount, you will need to increase the --max-spend-percentage value from {m:.0f} to {s:.0f}."
-    msg = msg.format(m=max_spend_percentage, s=int(spend_percentage)+1)
-    raise ValueError(msg)
 
 
   # [SECTION]: Manage fee
-  n_inputs = len(inputs)
-  n_outputs = len(outputs)
+  # Notes:
+  # - Later, we may need to add more inputs in order to pay the fee.
   estimated_tx_size = basic.estimate_transaction_size(n_inputs, n_outputs)
   msg = "Estimated transaction size: {} bytes".format(estimated_tx_size)
   log(msg)
@@ -363,36 +250,204 @@ Output {i}:
   # Check whether the fee passes the fee limit.
   msg = "Maximum fee: {} satoshi".format(max_fee)
   log(msg)
+  final_fee_bitcoin = basic.satoshi_to_bitcoin(final_fee)
   if final_fee > max_fee:
     msg = "The fee ({f} satoshi) is greater than the specified maximum fee ({m} satoshi).".format(f=final_fee, m=max_fee)
     raise ValueError(msg)
-  # Check whether there is enough change to pay the fee.
-  change = change_output.satoshi_amount
-  if final_fee > change:
-    difference = final_fee - change
-    msg = '''
-The fee is greater than the change amount.
-- Fee: {} satoshi
-- Change amount: {} satoshi
-- Difference: {} satoshi
-'''.strip().format(final_fee, change, difference)
-    raise ValueError(msg)
-  # Subtract fee from change amount.
-  new_change = change - final_fee
-  if new_change == 0:
-    # If the fee entirely consumes the change, then we delete the change output.
-    outputs = outputs[1:]
-    msg = "The fee will use the entire change amount."
-    msg += " The change output has been deleted."
+
+
+
+
+  # [SECTION]: Select inputs, using the supplied input_selection_approach(es), until their combined value exceeds the total output value.
+  selected_inputs = []
+  selected_inputs_index = 0
+  total_selected_input = 0
+
+
+  # We sort the inputs according to the input_selection_approach(es).
+  if len(input_selection_approach) > 1:
+    raise NotImplementedError
+  approach = input_selection_approach[0]
+  if approach == 'smallest_first':
+    inputs.sort(key=lambda x: x.satoshi_amount)
+  else:
+    raise NotImplementedError
+
+
+  # Calculate totals.
+  total_input = sum([x.satoshi_amount for x in inputs])
+  total_input_bitcoin = basic.satoshi_to_bitcoin(total_input)
+  total_output = sum([x.satoshi_amount for x in outputs])
+  total_output_bitcoin = basic.satoshi_to_bitcoin(total_output)
+  msg = "Total available input value: {} bitcoin ({} satoshi)"
+  msg = msg.format(total_input_bitcoin, total_input)
+  log(msg)
+  msg = "Total output value: {} bitcoin ({} satoshi)"
+  msg = msg.format(total_output_bitcoin, total_output)
+  log(msg)
+
+
+  # Stop if there isn't enough input value to cover the output value.
+  if total_input < total_output:
+    shortfall = total_output - total_input
+    shortfall_bitcoin = basic.satoshi_to_bitcoin(shortfall)
+    msg = "Total available input value is less than total output value."
+    msg += "\n- Shortfall: {} bitcoin ({} satoshi)".format(shortfall_bitcoin, shortfall)
+    raise OutputValueNotCovered(msg)
+  msg = "Total available input value is less than or equal to total output value."
+  log(msg)
+
+
+  # Calculate totals.
+  total_output_plus_fee = total_output + final_fee
+  total_output_plus_fee_bitcoin = basic.satoshi_to_bitcoin(total_output_plus_fee)
+  msg = "Total output + fee value: {} bitcoin ({} satoshi)"
+  msg = msg.format(total_output_plus_fee_bitcoin, total_output_plus_fee)
+  log(msg)
+
+
+  # Check whether there's enough input value to cover the output value + the fee value.
+  if total_input < total_output_plus_fee:
+    shortfall = total_output_plus_fee - total_input
+    shortfall_bitcoin = basic.satoshi_to_bitcoin(shortfall)
+    msg = "Total available input value is less than total output + fee value."
+    msg += "\n- Shortfall: {} bitcoin ({} satoshi)".format(shortfall_bitcoin, shortfall)
+    raise OutputAndFeeValueNotCovered(msg)
+  elif total_input == total_output_plus_fee:
+    log("Total available input value exactly matches total output + fee value.")
+    selected_inputs = inputs
+  else:
+    surplus = total_input - total_output_plus_fee
+    surplus_bitcoin = basic.satoshi_to_bitcoin(surplus)
+    msg = "Total available input value is greater than total output + fee value."
+    msg += "\n- Surplus value: {} bitcoin ({} satoshi)"
+    msg = msg.format(surplus_bitcoin, surplus)
+    log(msg)
+    msg = "Selecting inputs according to input selection approaches {} until [total selected input value] exceeds [total output + fee value]."
+    msg = msg.format(input_selection_approach)
+    log(msg)
+    for input_ in inputs:
+      selected_inputs_index += 1
+      total_selected_input += input_.satoshi_amount
+      selected_inputs.append(input_)
+      if total_selected_input >= total_output_plus_fee:
+        break
+
+  msg = "Selected inputs: {}".format(selected_inputs_index)
+  log(msg)
+  total_selected_input = sum([x.satoshi_amount for x in selected_inputs])
+  total_selected_input_bitcoin = basic.satoshi_to_bitcoin(total_selected_input)
+  msg = "Total selected input value: {} bitcoin ({} satoshi)"
+  msg = msg.format(total_selected_input_bitcoin, total_selected_input)
+  log(msg)
+
+
+
+
+  # [SECTION]: Handle change.
+  # Send any change to the change address. Create a new tx output if necessary.
+  change_output = None
+  change = 0
+  change_bitcoin = basic.satoshi_to_bitcoin(change)
+
+
+  if total_selected_input == total_output_plus_fee:
+    log("Total selected input value exactly matches total output + fee value.")
+  else:
+    surplus = total_selected_input - total_output_plus_fee
+    surplus_bitcoin = basic.satoshi_to_bitcoin(surplus)
+    msg = "Total selected input value is greater than total output + fee value."
+    msg += "\n- Surplus value: {} bitcoin ({} satoshi)"
+    msg += "\n- This extra value will be sent to the change address."
+    msg += "\n- Change address: {}".format(change_address)
+    msg = msg.format(surplus_bitcoin, surplus)
+    log(msg)
+    # Assign any surplus input value to the change address.
+    change_outputs = [x for x in outputs if x.address == change_address]
+    if len(change_outputs) > 1:
+      raise ValueError
+    elif len(change_outputs) == 1:
+      change_output = change_outputs[0]
+      # Assign the surplus value to the change output.
+      old_amount = change_output.satoshi_amount
+      new_amount = old_amount + surplus
+      change_output.set_satoshi_amount(new_amount)
+      old_amount_bitcoin = basic.satoshi_to_bitcoin(old_amount)
+      msg = "Change address found within outputs."
+      msg += "\n- Old change amount: {} bitcoin ({} satoshi)"
+      msg = msg.format(old_amount, old_amount_bitcoin)
+      log(msg)
+    else:
+      # Create a new output for the change address if one doesn't already exist.
+      change_output = transaction_output.TransactionOutput.create(
+        address = change_address,
+        satoshi_amount = surplus,
+      )
+      # Place change_output at the start of the outputs list.
+      outputs.insert(0, change_output)
+      msg = "New output created to send change to change address."
+      log(msg)
+      n_outputs = len(outputs)
+      msg = "New number of outputs: {}".format(n_outputs)
+      log(msg)
+    # Recalculate total_output and total_output_plus_fee.
+    total_output = sum([x.satoshi_amount for x in outputs])
+    total_output_bitcoin = basic.satoshi_to_bitcoin(total_output)
+    msg = "New total output value: {} bitcoin ({} satoshi)"
+    msg = msg.format(total_output_bitcoin, total_output)
+    log(msg)
+    total_output_plus_fee = total_output + final_fee
+    total_output_plus_fee_bitcoin = basic.satoshi_to_bitcoin(total_output_plus_fee)
+    msg = "New total output + fee value: {} bitcoin ({} satoshi)"
+    msg = msg.format(total_output_plus_fee_bitcoin, total_output_plus_fee)
+    log(msg)
+  # Double-check.
+  if total_selected_input != total_output_plus_fee:
+    raise ValueError
+  if change_output:
+    change = change_output.satoshi_amount
+  change_bitcoin = basic.satoshi_to_bitcoin(change)
+  msg = "Change amount: {} bitcoin ({} satoshi)"
+  msg = msg.format(change, change_bitcoin)
+  log(msg)
+
+
+
+
+  # [SECTION]: Manage spending limit.
+  # Confirm that the amount that we are going to spend does not exceed the permitted limit.
+  # - Note that the permitted limit is the total available input value, not the total selected input value.
+  msg = "Maximum percentage of input value (prior to fee subtraction) that can be spent: {:.2f}%".format(max_spend_percentage)
+  msg += '\n- Note: "spend" == send bitcoin to any address that is not the change address.'
+  log(msg)
+  max_spend = max_spend_percentage / 100 * total_input
+  # Round up to the nearest satoshi.
+  max_spend = int(math.ceil(max_spend))
+  max_spend_bitcoin = basic.satoshi_to_bitcoin(max_spend)
+  msg = "Maximum spend amount: {} bitcoin ({} satoshi)"
+  msg = msg.format(max_spend_bitcoin, max_spend)
+  log(msg)
+  spend = total_selected_input - change
+  spend_bitcoin = basic.satoshi_to_bitcoin(spend)
+  msg = "Spend amount: {} bitcoin ({} satoshi)"
+  msg = msg.format(spend_bitcoin, spend)
+  log(msg)
+  spend_percentage = float(spend) / total_input * 100
+  msg = "The spend amount is {:.2f}% of the available input value.".format(spend_percentage)
+  log(msg)
+  if spend <= max_spend:
+    spend_percentage_2 = float(spend) / max_spend * 100
+    msg = "The spend amount is {:.2f}% of the maximum permitted spend amount."
+    msg = msg.format(spend_percentage_2)
     log(msg)
   else:
-    change_output.set_satoshi_amount(new_change)
-    log("Fee subtracted from change amount.")
-    change = change_output.satoshi_amount
-    change_bitcoin = basic.satoshi_to_bitcoin(change)
-    msg = "New change amount: {} bitcoin ({} satoshi)"
-    msg = msg.format(change, change_bitcoin)
-    log(msg)
+    msg = "Spend amount ({s} bitcoin) is greater than the maximum permitted spend amount ({m} bitcoin)."
+    msg = msg.format(s=spend_bitcoin, m=max_spend_bitcoin)
+    msg += " To spend this amount, you will need to increase the --max-spend-percentage value from {m:.0f} to {s:.0f}."
+    msg = msg.format(m=max_spend_percentage, s=int(spend_percentage)+1)
+    raise ValueError(msg)
+
+
 
 
   # [SECTION]: Create transaction
