@@ -594,8 +594,6 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
     deb('output_count: {}'.format(output_count))
     output_count_int = basic.var_int_to_int(output_count)
     deb('output_count_int: {}'.format(output_count_int))
-    if output_count_int > 1:
-      raise NotImplementedError
     outputs = []
     for x in range(output_count_int):
       deb('output {}:'.format(x))
