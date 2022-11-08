@@ -259,6 +259,12 @@ Sample `design.json`:
 }
 ```
 
+Obligatory arguments:  
+- change_address  
+- fee or fee_rate  
+- max_fee  
+- max_spend_percentage  
+
 
 change_address: Inputs will be selected from the available list until their combined value exceeds the total output value + the fee value. Any surplus value will be sent to the change address.
 
