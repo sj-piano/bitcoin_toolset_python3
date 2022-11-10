@@ -101,6 +101,17 @@ Sample `design.json`:
 }
 ```
 
+Private keys are stored as text files in their own directory. Each private key file contains the key in hex form on a single line.
+
+```bash
+stjohn@judgement:bitcoin_toolset_python3$ tail -n +1 ../bitcoin_private_keys_test/*
+==> ../bitcoin_private_keys_test/private_key_1.txt <==
+0000000000000000000000007468655f6c6962726172795f6f665f626162656c
+
+==> ../bitcoin_private_keys_test/private_key_2.txt <==
+00000000000000000000007468655f6d6f74655f696e5f676f6427735f657965
+```
+
 
 In this sequence, we go through all the possible steps of creating a new transaction. Creation, validation, signing, verification, rendering into hex, and decoding.
 
@@ -113,7 +124,7 @@ python cli.py --task create_unsigned_transaction_json --input-file cli_input/inp
 python cli.py --task validate_unsigned_transaction_json --data-file cli_output/tx_unsigned.json
 
 
-python cli.py --task create_signed_transaction_json --private-key-file ../bitcoin_private_keys_test/private_key_1.txt --data-file cli_output/tx_unsigned.json > cli_output/tx_signed.json
+python cli.py --task create_signed_transaction_json --private-key-dir ../bitcoin_private_keys_test --data-file cli_output/tx_unsigned.json > cli_output/tx_signed.json
 
 
 python cli.py --task verify_signed_transaction_json --data-file cli_output/tx_signed.json
@@ -268,18 +279,144 @@ Obligatory arguments:
 
 change_address: Inputs will be selected from the available list until their combined value exceeds the total output value + the fee value. Any surplus value will be sent to the change address.
 
-fee: The transaction fee in satoshi.
+fee: The transaction fee in satoshi. Can be integer or string.
 
-fee_rate: An alternative option to `fee`. The transaction fee rate in satoshi/byte.
+fee_rate: An alternative option to `fee`. The transaction fee rate in satoshi/byte. Can be integer or string. If string, can be a float value.
 
-max_fee: The maximum fee in satoshi that is permitted in the transaction.
+max_fee: The maximum fee in satoshi that is permitted in the transaction. Can be integer or string.
 
-max_spend_percentage: Maximum percentage of total available input value that may be spent in the transaction.
-
-
+max_spend_percentage: Maximum percentage of total available input value that may be spent in the transaction. Can be integer or string. If string, can be a float value.
 
 
-# Example transaction creation
+
+
+# Example transaction creation (fast)
+
+
+`inputs.json`:
+
+```json
+[
+  {
+    "address": "138obEZkdWaWEQ4x8ZAYw4MybHSZtX1Nam",
+    "transaction_id": "e4609e0f1ca854b8b07381f32ba31adbad9713205f5a4f3f56a5a32853d47855",
+    "previous_output_index": 8,
+    "bitcoin_amount": "0.00242"
+  }
+]
+```
+
+
+`design.json`:
+
+```json
+{
+  "change_address": "138obEZkdWaWEQ4x8ZAYw4MybHSZtX1Nam",
+  "fee_rate": 1,
+  "max_fee": 250,
+  "max_spend_percentage": "100.00",
+  "outputs": [
+    {
+      "address": "13xPBB175FtPbPQ84iB8KuawaVy3mHrady",
+      "bitcoin_amount": "0.00241777"
+    }
+  ]
+}
+```
+
+`../bitcoin_private_keys_test/private_key_2.txt`:
+
+```
+00000000000000000000007468655f6d6f74655f696e5f676f6427735f657965
+```
+
+
+```bash
+stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_transaction --private-key-dir ../bitcoin_private_keys_test --input-file cli_input/inputs.json --design-file cli_input/design.json > cli_output/tx_signed.txt
+
+
+stjohn@judgement:bitcoin_toolset_python3$ cat cli_output/tx_signed.txt
+01000000015578d45328a3a5563f4f5a5f201397addb1aa32bf38173b0b854a81c0f9e60e4080000008b483045022100ee18501fbcf2543ee8ffb5f9c12b65181960345014856b5f639e2f98f70c001b02203af10ddcedd833781628b144d1201d2369dbf7f99d0a9fb955da63d4881186320141041ad06846fd7cf9998a827485d8dd5aaba9eccc385ba7759a6e9055fbdf90d7513c0d11fe5e5dcfcf8d4946c67f6c45f8e7f7d7a9c254ca8ebde1ffd64ab9dd58ffffffff0171b00300000000001976a9142069a3fae01db74cef12d1d01811afdf6a3e1c2e88ac00000000
+```
+
+
+The signed transaction hex is ready for broadcast. However, it is recommended to decode it first and double-check its output addresses and values. Note that the signed transaction does not include input values or fee information.
+
+
+```
+stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task decode_signed_transaction_hex --data-file cli_output/tx_signed.txt
+{
+  "version": "01000000",
+  "input_count": "01",
+  "inputs": [
+    {
+      "previous_output_hash": "5578d45328a3a5563f4f5a5f201397addb1aa32bf38173b0b854a81c0f9e60e4",
+      "previous_output_index": "08000000",
+      "previous_output_index_int": 8,
+      "script_length": "8b",
+      "script_length_int": 139,
+      "script_sig": "483045022100ee18501fbcf2543ee8ffb5f9c12b65181960345014856b5f639e2f98f70c001b02203af10ddcedd833781628b144d1201d2369dbf7f99d0a9fb955da63d4881186320141041ad06846fd7cf9998a827485d8dd5aaba9eccc385ba7759a6e9055fbdf90d7513c0d11fe5e5dcfcf8d4946c67f6c45f8e7f7d7a9c254ca8ebde1ffd64ab9dd58",
+      "sequence": "ffffffff",
+      "public_key_hex": "1ad06846fd7cf9998a827485d8dd5aaba9eccc385ba7759a6e9055fbdf90d7513c0d11fe5e5dcfcf8d4946c67f6c45f8e7f7d7a9c254ca8ebde1ffd64ab9dd58",
+      "script_pub_key_length": "19",
+      "script_pub_key_length_int": 25,
+      "script_pub_key": "76a914176a0e0c2b9b0e77d630712ad301b749102a304488ac",
+      "address": "138obEZkdWaWEQ4x8ZAYw4MybHSZtX1Nam",
+      "txid": "e4609e0f1ca854b8b07381f32ba31adbad9713205f5a4f3f56a5a32853d47855",
+      "satoshi_amount": null,
+      "bitcoin_amount": null
+    }
+  ],
+  "output_count": "01",
+  "outputs": [
+    {
+      "value": "71b0030000000000",
+      "script_length": "19",
+      "script_length_int": 25,
+      "script_pub_key": "76a9142069a3fae01db74cef12d1d01811afdf6a3e1c2e88ac",
+      "address": "13xPBB175FtPbPQ84iB8KuawaVy3mHrady",
+      "bitcoin_amount": "0.00241777",
+      "satoshi_amount": 241777
+    }
+  ],
+  "block_lock_time": "00000000",
+  "hash_type_4_byte": "01000000",
+  "hash_type_1_byte": "01",
+  "signed": true,
+  "total_input": {
+    "satoshi_amount": null,
+    "bitcoin_amount": null
+  },
+  "total_output": {
+    "satoshi_amount": 241777,
+    "bitcoin_amount": "0.00241777"
+  },
+  "fee": {
+    "satoshi_amount": null,
+    "bitcoin_amount": null
+  },
+  "change_address": null,
+  "change": {
+    "satoshi_amount": null,
+    "bitcoin_amount": null
+  },
+  "estimated_size_bytes": 223,
+  "estimated_fee_rate": {
+    "satoshi_per_byte": null,
+    "bitcoin_per_byte": null
+  },
+  "size_bytes": 224,
+  "fee_rate": {
+    "satoshi_amount": null,
+    "bitcoin_amount": null
+  }
+}
+```
+
+
+
+
+# Example transaction creation (slow, detailed, step-by-step)
 
 
 `inputs.json`:
@@ -313,6 +450,11 @@ max_spend_percentage: Maximum percentage of total available input value that may
 }
 ```
 
+`../bitcoin_private_keys_test/private_key_1.txt`:
+
+```
+0000000000000000000000007468655f6c6962726172795f6f665f626162656c
+```
 
 
 
@@ -363,7 +505,7 @@ stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_unsigned_t
 
 
 
-# We can set log-level to 'info' to see the construction step-by-step.
+# We can set log-level to 'info' to see the construction decisions in detail.
 
 
 stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_unsigned_transaction_json --input-file cli_input/inputs.json --design-file cli_input/design.json --log-level=info
@@ -568,6 +710,9 @@ stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task decode_signed_tra
 
 
 ```
+
+
+
 
 
 
