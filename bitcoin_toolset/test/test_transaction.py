@@ -1920,8 +1920,127 @@ def test_add_input_to_pay_fee_2():
 
 
 
+def test_fee_rate_argument():
+  # Build tx2 using fee_rate.
+  # Input data:
+  private_keys_hex = [
+    '00000000000000000000007468655f6d6f74655f696e5f676f6427735f657965'
+  ]
+  random_values_hex = [
+    '00000000005468652046616365206f6620476f64206468636d726c636874646a'
+  ]
+  available_inputs_data = [
+    {
+      "address": "138obEZkdWaWEQ4x8ZAYw4MybHSZtX1Nam",
+      "transaction_id": "e4609e0f1ca854b8b07381f32ba31adbad9713205f5a4f3f56a5a32853d47855",
+      "previous_output_index": 8,
+      "bitcoin_amount": "0.0024200"
+    },
+  ]
+  design = {
+    "change_address": "138obEZkdWaWEQ4x8ZAYw4MybHSZtX1Nam",
+    "fee_rate": 1,
+    "max_fee": 250,
+    "max_spend_percentage": "100.00",
+    "outputs": [
+      {
+        "address": "13xPBB175FtPbPQ84iB8KuawaVy3mHrady",
+        "bitcoin_amount": "0.00241777"
+      }
+    ]
+  }
+  tx_unsigned_expected = {}
+  tx_signed_expected = {}
+  tx_signed_hex_expected = """
+01000000015578d45328a3a5563f4f5a5f201397addb1aa32bf38173b0b854a81c0f9e60e4080000008a473044022017ece35581a034a4838a577fe438f108cf22764927a1ad197ed379460c0764cd022066723723eff05c10bac9a2f63b3e782e24fde290701c9408f3d1054722adad360141041ad06846fd7cf9998a827485d8dd5aaba9eccc385ba7759a6e9055fbdf90d7513c0d11fe5e5dcfcf8d4946c67f6c45f8e7f7d7a9c254ca8ebde1ffd64ab9dd58ffffffff0171b00300000000001976a9142069a3fae01db74cef12d1d01811afdf6a3e1c2e88ac00000000
+""".strip()
+  txid_expected = '745e224ccba0a033c55ea80523f207da18b903418ac1f5d293eed62c19e0334d'
+  a = Namespace(
+    inputs = available_inputs_data,
+    design = design,
+    allow_duplicate_output_address = True,
+  )
+  tx_unsigned = code.create_transaction.create_transaction(a)
+  #print(tx_unsigned.to_json())
+  assert tx_unsigned.fee == 223
+  #assert tx_unsigned.to_dict() == tx_unsigned_expected
+  tx_signed = tx_unsigned.sign(private_keys_hex, random_values_hex)
+  #print(tx_signed.to_json())
+  #return
+  #assert tx_signed.to_dict() == tx_signed_expected
+  valid_signatures = tx_signed.verify()
+  if not valid_signatures:
+    raise ValueError("Invalid signature(s)!")
+  tx_signed_hex = tx_signed.to_hex_signed_form()
+  #print(tx_signed_hex)
+  assert tx_signed_hex == tx_signed_hex_expected
+  txid = tx_signed.calculate_txid()
+  assert txid == txid_expected
 
 
+
+
+def test_fee_rate_argument_2():
+  # Build tx11 using fee_rate.
+  # - This also tests the allow_duplicate_output_address option.
+  # Input data:
+  private_keys_hex = [
+    '1647a11df9b9785669d630fa90d6c8242a622a8fc077fb50fc4c52f8391c22ad',
+  ]
+  random_values_hex = [
+    '9a1f6aec7c093dd63676f18520cab23c989a387a56ce870b1296510d0b11c7a8',
+  ]
+  available_inputs_data = [
+    {
+      "address": "1AppardGrpGdddB2HUTLRd2GGWaYAWDByX",
+      "transaction_id": "dcb76b885dd8130a5e926edde743b8cae969449213686313917eb4ccda6bf3cf",
+      "previous_output_index": 0,
+      "bitcoin_amount": "0.01000000",
+    },
+  ]
+  design = {
+    "change_address": "1AppardGrpGdddB2HUTLRd2GGWaYAWDByX",
+    "fee_rate": 100,
+    "max_fee": 30000,
+    "max_spend_percentage": "100.00",
+    "outputs": [
+      {
+        "address": "1AppardGrpGdddB2HUTLRd2GGWaYAWDByX",
+        "bitcoin_amount": "0.00474300",
+      },
+      {
+        "address": "1AppardGrpGdddB2HUTLRd2GGWaYAWDByX",
+        "bitcoin_amount": "0.00500000",
+      },
+    ]
+  }
+  tx_unsigned_expected = {}
+  tx_signed_expected = {}
+  tx_signed_hex_expected = """
+0100000001cff36bdaccb47e9113636813924469e9cab843e7dd6e925e0a13d85d886bb7dc000000008a47304402207da19140017b49a6bd5dad326d4fe21edc0337ef4d5d1415e6aba1e3419a703702204c6617b87383efc3bab4d3b082a350a72754ecd85c7ed6287923cb862615b88d0141045141d905ca3f3c688bd1fd9b2d91ffeb7c12082dcfe2674ccf0239d75b0456acdf5a53b153907a14712d1c6743a264488e7705c42229fe4d2365bfcd592ab254ffffffff02bc3c0700000000001976a9146bc4673483dfe54e2cc83fed2f235cf8102e643d88ac20a10700000000001976a9146bc4673483dfe54e2cc83fed2f235cf8102e643d88ac00000000
+""".strip()
+  txid_expected = '674232a1575e618e4755a17c7b0738f33a81fcb63d5db25d41016a3be18db900'
+  a = Namespace(
+    inputs = available_inputs_data,
+    design = design,
+    allow_duplicate_output_address = True,
+  )
+  tx_unsigned = code.create_transaction.create_transaction(a)
+  #print(tx_unsigned.to_json())
+  assert tx_unsigned.fee == 25700
+  #assert tx_unsigned.to_dict() == tx_unsigned_expected
+  tx_signed = tx_unsigned.sign(private_keys_hex, random_values_hex)
+  #print(tx_signed.to_json())
+  #return
+  #assert tx_signed.to_dict() == tx_signed_expected
+  valid_signatures = tx_signed.verify()
+  if not valid_signatures:
+    raise ValueError("Invalid signature(s)!")
+  tx_signed_hex = tx_signed.to_hex_signed_form()
+  #print(tx_signed_hex)
+  assert tx_signed_hex == tx_signed_hex_expected
+  txid = tx_signed.calculate_txid()
+  assert txid == txid_expected
 
 
 
