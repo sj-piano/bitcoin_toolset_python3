@@ -85,18 +85,36 @@ def create_transaction(a):
 inputs design
 '''
   expected = expected.replace('\n', ' ').split()
-  received = list(vars(a).keys())
-  v.validate_list_contains_items(received, expected)
+  received1 = list(vars(a).keys())
+  v.validate_list_contains_items(received1, expected)
+  allow_duplicate_output_address = a.allow_duplicate_output_address if 'allow_duplicate_output_address' in received1 else None
 
+  # Unpack arguments.
+  design = a.design
+  received = list(design.keys())
+
+  # Adjust some value types if necessary.
+  if 'fee' in received:
+    fee = design['fee']
+    if isinstance(fee, str):
+      design['fee'] = int(fee)
+  if 'fee_rate' in received:
+    fee_rate = design['fee_rate']
+    if isinstance(fee_rate, int):
+      design['fee_rate'] = str(fee_rate)
+  if 'max_fee' in received:
+    max_fee = design['max_fee']
+    if isinstance(max_fee, str):
+      design['max_fee'] = int(max_fee)
+
+  # Validate arguments.
   validate_inputs(a.inputs)
   validate_design(a.design)
 
   log('All arguments validated. No problems found.')
 
 
-  # Unpack various arguments.
-  design = a.design
-  received = list(design.keys())
+  # Unpack arguments.
   a.outputs = design['outputs']
   fee = design['fee'] if 'fee' in received else None
   fee_rate = design['fee_rate'] if 'fee_rate' in received else None
@@ -213,8 +231,9 @@ Output {i}:
   for address in output_addresses:
     count = sum(1 for x in outputs if x.address == address)
     if count > 1:
-      msg = "Multiple outputs ({}) send to this address: {}".format(count, address)
-      raise ValueError(msg)
+      if not allow_duplicate_output_address:
+        msg = "Multiple outputs ({}) send to this address: {}".format(count, address)
+        raise ValueError(msg)
 
 
 
@@ -558,10 +577,10 @@ Design must contain exactly one of these keys:
 
     if fee:
       # Permit 0-satoshi fee.
-      v.validate_whole_number(design['fee'])
+      v.validate_whole_number(fee)
 
     if fee_rate:
-      v.validate_string_is_whole_number_or_decimal(design['fee_rate'])
+      v.validate_string_is_whole_number_or_decimal(fee_rate)
 
     # Validate input_selection_approach
     # - Ensure that conflicting input selection approaches are not used together.
