@@ -127,7 +127,7 @@ inputs design
   change_address = design['change_address']
   max_fee = design['max_fee']
   max_spend_percentage = design['max_spend_percentage']
-  input_selection_approach = design['input_selection_approach'] if 'input_selection_approach' in received else ["smallest_first"]
+  input_selection_approach = design['input_selection_approach'] if 'input_selection_approach' in received else ["largest_first"]
 
 
 
@@ -150,7 +150,7 @@ inputs design
 
 
   # [SECTION]: Report input and output data.
-  log("Report input and output data.")
+  log("Report supplied data for inputs and outputs.")
   for i, x in enumerate(a.inputs):
     address = x['address']
     txid = x['transaction_id']
@@ -200,6 +200,54 @@ Output {i}:
     outputs.append(output)
   n_outputs = len(outputs)
   log("Number of outputs: {}".format(n_outputs))
+
+
+
+
+  # [SECTION]: Sort the inputs according to the input_selection_approach(es).
+  if len(input_selection_approach) > 1:
+    raise NotImplementedError
+  approach = input_selection_approach[0]
+  if approach == 'largest_first':
+    inputs.sort(key=lambda x: x.satoshi_amount, reverse=True)
+  elif approach == 'smallest_first':
+    inputs.sort(key=lambda x: x.satoshi_amount)
+  else:
+    msg = "Unrecognised input_selection_approach: {}".format(approach)
+    raise NotImplementedError(msg)
+  plural = 'es' if len(input_selection_approach) > 1 else ''
+  msg = "{} inputs sorted according to the input selection approach{}: {}"
+  msg = msg.format(len(inputs), plural, str(input_selection_approach))
+  log(msg)
+
+
+
+  # [SECTION]: Report sorted inputs and outputs.
+  log("Report inputs (now sorted) and outputs.")
+  for i, x in enumerate(inputs):
+    address = x.address
+    txid = x.txid
+    index = x.previous_output_index
+    ba = x.bitcoin_amount
+    sa = x.satoshi_amount
+    msg = '''
+Input {i}:
+- address: {address}
+- txid: {txid}
+- previous_output_index: {index}
+- bitcoin_amount: {ba} ({sa} satoshi)
+'''.strip().format(**vars())
+    log(msg)
+  for i, x in enumerate(outputs):
+    address = x.address
+    ba = x.bitcoin_amount
+    sa = x.satoshi_amount
+    msg = '''
+Output {i}:
+- address: {address}
+- bitcoin_amount: {ba} ({sa} satoshi)
+'''.strip().format(**vars())
+    log(msg)
 
 
 
@@ -283,20 +331,10 @@ Output {i}:
 
 
 
-  # [SECTION]: Select inputs, using the supplied input_selection_approach(es), until their combined value exceeds the total output value.
+  # [SECTION]: Select inputs from the list until their combined value exceeds the total output value.
   selected_inputs = []
   selected_inputs_index = 0
   total_selected_input = 0
-
-
-  # We sort the inputs according to the input_selection_approach(es).
-  if len(input_selection_approach) > 1:
-    raise NotImplementedError
-  approach = input_selection_approach[0]
-  if approach == 'smallest_first':
-    inputs.sort(key=lambda x: x.satoshi_amount)
-  else:
-    raise NotImplementedError
 
 
   # Calculate totals.
@@ -531,6 +569,7 @@ address transaction_id previous_output_index bitcoin_amount
 
 
 
+
 def validate_design(design):
   # JSON data containing the design for a new transaction.
   # Not included: input data.
@@ -615,14 +654,14 @@ Design must contain exactly one of these keys:
       log(approaches)
       v.validate_list(approaches)
       available_approaches = [
-        'smallest_first', 'largest_first',
-        'one_address_at_a_time', 'any_address',
-        'smallest_address_first', 'largest_address_first',
+        'largest_first', 'smallest_first',
+        'any_address', 'one_address_at_a_time',
+        'largest_address_first', 'smallest_address_first',
       ]
       conflicts = [
-        ('smallest_first', 'largest_first'),
-        ('one_address_at_a_time', 'any_address'),
-        ('smallest_address_first', 'largest_address_first'),
+        ('largest_first', 'smallest_first'),
+        ('any_address', 'one_address_at_a_time'),
+        ('largest_address_first', 'smallest_address_first'),
       ]
       for c in conflicts:
         x, y = c
