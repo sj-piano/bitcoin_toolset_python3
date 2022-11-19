@@ -290,7 +290,13 @@ max_spend_percentage: Maximum percentage of total available input value that may
 
 
 
-# Example transaction creation (fast)
+
+
+
+
+
+
+# Example transaction creation
 
 
 `inputs.json`:
@@ -331,8 +337,15 @@ max_spend_percentage: Maximum percentage of total available input value that may
 ```
 
 
+
+
 ```bash
 stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_transaction --private-key-dir ../bitcoin_private_keys_test --input-file cli_input/inputs.json --design-file cli_input/design.json > cli_output/tx_signed.txt
+
+
+# To see construction details, add this argument: --log-level info
+# Example command:
+# python cli.py --task create_transaction --private-key-dir ../bitcoin_private_keys_test --input-file cli_input/inputs.json --design-file cli_input/design.json --log-level info
 
 
 stjohn@judgement:bitcoin_toolset_python3$ cat cli_output/tx_signed.txt
@@ -416,7 +429,191 @@ stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task decode_signed_tra
 
 
 
-# Example transaction creation (slow, detailed, step-by-step)
+
+
+
+
+
+
+# Example transaction creation: two inputs and two outputs
+
+
+`inputs.json`:
+
+```json
+[
+  {
+    "address": "12YCFdpsRDvEHNcj5rsmvJ5G2XXkW1icJP",
+    "transaction_id": "585f054c01139bdae20ff8fa233c4cda47db6d891a387e37dfd56f9cb39d1bea",
+    "previous_output_index": 0,
+    "bitcoin_amount": "0.00474300"
+  },
+  {
+    "address": "1H5SUR7Fv7x252WuJPqBjewwpeHuJ218Ky",
+    "transaction_id": "585f054c01139bdae20ff8fa233c4cda47db6d891a387e37dfd56f9cb39d1bea",
+    "previous_output_index": 1,
+    "bitcoin_amount": "0.00500000"
+  }
+]
+```
+
+
+`design.json`:
+
+```json
+{
+  "change_address": "136oURWq1zjkdQHKcanE7TyA3o36ibARNM",
+  "fee": 43600,
+  "max_fee": 45000,
+  "max_spend_percentage": "100.00",
+  "outputs": [
+    {
+      "address": "136oURWq1zjkdQHKcanE7TyA3o36ibARNM",
+      "bitcoin_amount": "0.00430700"
+    },
+    {
+      "address": "12PX5jPyQYejyrU79nZUDmKXvB3ttMfDqZ",
+      "bitcoin_amount": "0.00500000"
+    }
+  ]
+}
+```
+
+`../bitcoin_private_keys_test/private_key_3.txt`:
+
+```
+ecfb8057d4e053dda6849f6a361ca2d6797368651bbb2b52ce4691515a7909e1
+```
+
+`../bitcoin_private_keys_test/private_key_4.txt`:
+
+```
+fc8c7e92b44fe66f8f20d98a648f659da69461661673e22292a67dc20742ef17
+```
+
+
+
+
+```bash
+
+stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_transaction --private-key-dir ../bitcoin_private_keys_test --input-file cli_input/inputs.json --design-file cli_input/design.json > cli_output/tx_signed.txt
+
+
+# To see construction details, add this argument: --log-level info
+# Example command:
+# python cli.py --task create_transaction --private-key-dir ../bitcoin_private_keys_test --input-file cli_input/inputs.json --design-file cli_input/design.json --log-level info
+
+
+stjohn@judgement:bitcoin_toolset_python3$ cat cli_output/tx_signed.txt
+0100000002ea1b9db39c6fd5df377e381a896ddb47da4c3c23faf80fe2da9b13014c055f58000000008b483045022100b414e380548415cef385dd90ee02c1219788c926c4f268f5cc15d2825cbbe9230220348e91d9748a344e6aea8c1b6d4d92bc8375882408393d436adf45b808bef469014104e5f0aa4e9ee32cc982db529c981f18171cd9d1ccf224a94e4b3c09b51fd3752c6ebf66f0861dc435fee962f995ab9c5346d32332a409c598eb575cec74115180ffffffffea1b9db39c6fd5df377e381a896ddb47da4c3c23faf80fe2da9b13014c055f58010000008a473044022072b945a39a3f82332e221a047c8110bcee1e206a014285146f43451793f600940220109267d986f9ac41da30869807bb746630e18e20259a9027075b2bc9c53ca011014104cca91b1ad65fc428789b469f0e030fb2de58132c61f3240f416e3a6eb1963009a359770805e71e9b7c7982da51c2a3209ec908efe71cf5ec8b65f5b9eb05115bffffffff026c920600000000001976a91417091ffac2b6bb51d9fd1d979fac6ec6bf3a2f1e88ac20a10700000000001976a9140f3a634504545b37a97b10214b2f640fb16085e588ac00000000
+
+
+stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task decode_signed_transaction_hex --data-file cli_output/tx_signed.txt
+{
+  "version": "01000000",
+  "input_count": "02",
+  "inputs": [
+    {
+      "previous_output_hash": "ea1b9db39c6fd5df377e381a896ddb47da4c3c23faf80fe2da9b13014c055f58",
+      "previous_output_index": "00000000",
+      "previous_output_index_int": 0,
+      "script_length": "8b",
+      "script_length_int": 139,
+      "script_sig": "483045022100b414e380548415cef385dd90ee02c1219788c926c4f268f5cc15d2825cbbe9230220348e91d9748a344e6aea8c1b6d4d92bc8375882408393d436adf45b808bef469014104e5f0aa4e9ee32cc982db529c981f18171cd9d1ccf224a94e4b3c09b51fd3752c6ebf66f0861dc435fee962f995ab9c5346d32332a409c598eb575cec74115180",
+      "sequence": "ffffffff",
+      "public_key_hex": "e5f0aa4e9ee32cc982db529c981f18171cd9d1ccf224a94e4b3c09b51fd3752c6ebf66f0861dc435fee962f995ab9c5346d32332a409c598eb575cec74115180",
+      "script_pub_key_length": "19",
+      "script_pub_key_length_int": 25,
+      "script_pub_key": "76a91410de69df99d4b834ee6f2bd1466edab556beb7d688ac",
+      "address": "12YCFdpsRDvEHNcj5rsmvJ5G2XXkW1icJP",
+      "txid": "585f054c01139bdae20ff8fa233c4cda47db6d891a387e37dfd56f9cb39d1bea",
+      "satoshi_amount": null,
+      "bitcoin_amount": null
+    },
+    {
+      "previous_output_hash": "ea1b9db39c6fd5df377e381a896ddb47da4c3c23faf80fe2da9b13014c055f58",
+      "previous_output_index": "01000000",
+      "previous_output_index_int": 1,
+      "script_length": "8a",
+      "script_length_int": 138,
+      "script_sig": "473044022072b945a39a3f82332e221a047c8110bcee1e206a014285146f43451793f600940220109267d986f9ac41da30869807bb746630e18e20259a9027075b2bc9c53ca011014104cca91b1ad65fc428789b469f0e030fb2de58132c61f3240f416e3a6eb1963009a359770805e71e9b7c7982da51c2a3209ec908efe71cf5ec8b65f5b9eb05115b",
+      "sequence": "ffffffff",
+      "public_key_hex": "cca91b1ad65fc428789b469f0e030fb2de58132c61f3240f416e3a6eb1963009a359770805e71e9b7c7982da51c2a3209ec908efe71cf5ec8b65f5b9eb05115b",
+      "script_pub_key_length": "19",
+      "script_pub_key_length_int": 25,
+      "script_pub_key": "76a914b058f09e25382dd3b9339c25a5727085a22c8c6088ac",
+      "address": "1H5SUR7Fv7x252WuJPqBjewwpeHuJ218Ky",
+      "txid": "585f054c01139bdae20ff8fa233c4cda47db6d891a387e37dfd56f9cb39d1bea",
+      "satoshi_amount": null,
+      "bitcoin_amount": null
+    }
+  ],
+  "output_count": "02",
+  "outputs": [
+    {
+      "value": "6c92060000000000",
+      "script_length": "19",
+      "script_length_int": 25,
+      "script_pub_key": "76a91417091ffac2b6bb51d9fd1d979fac6ec6bf3a2f1e88ac",
+      "address": "136oURWq1zjkdQHKcanE7TyA3o36ibARNM",
+      "bitcoin_amount": "0.00430700",
+      "satoshi_amount": 430700
+    },
+    {
+      "value": "20a1070000000000",
+      "script_length": "19",
+      "script_length_int": 25,
+      "script_pub_key": "76a9140f3a634504545b37a97b10214b2f640fb16085e588ac",
+      "address": "12PX5jPyQYejyrU79nZUDmKXvB3ttMfDqZ",
+      "bitcoin_amount": "0.00500000",
+      "satoshi_amount": 500000
+    }
+  ],
+  "block_lock_time": "00000000",
+  "hash_type_4_byte": "01000000",
+  "hash_type_1_byte": "01",
+  "signed": true,
+  "total_input": {
+    "satoshi_amount": null,
+    "bitcoin_amount": null
+  },
+  "total_output": {
+    "satoshi_amount": 930700,
+    "bitcoin_amount": "0.00930700"
+  },
+  "fee": {
+    "satoshi_amount": null,
+    "bitcoin_amount": null
+  },
+  "change_address": null,
+  "change": {
+    "satoshi_amount": null,
+    "bitcoin_amount": null
+  },
+  "estimated_size_bytes": 436,
+  "estimated_fee_rate": {
+    "satoshi_per_byte": null,
+    "bitcoin_per_byte": null
+  },
+  "size_bytes": 437,
+  "fee_rate": {
+    "satoshi_amount": null,
+    "bitcoin_amount": null
+  }
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+# Example transaction creation (slow, step-by-step, with detailed log output)
 
 
 `inputs.json`:
@@ -455,6 +652,7 @@ stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task decode_signed_tra
 ```
 0000000000000000000000007468655f6c6962726172795f6f665f626162656c
 ```
+
 
 
 
@@ -604,7 +802,10 @@ stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task validate_unsigned
 Unsigned transaction data validated.
 
 
-stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_signed_transaction_json --private-key-file ../bitcoin_private_keys_test/private_key_1.txt --data-file cli_output/tx_unsigned.json
+stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_signed_transaction_json --private-key-file ../bitcoin_private_keys_test/private_key_1.txt --data-file cli_output/tx_unsigned.json > cli_output/tx_signed.json
+
+
+stjohn@judgement:bitcoin_toolset_python3$ cat cli_output/tx_signed.json
 {
   "version": "01000000",
   "input_count": "01",
@@ -650,18 +851,18 @@ stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_signed_tra
 
 
 stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task verify_signed_transaction_json --data-file cli_output/tx_signed.json
-Valid signature(s).
+Valid signature.
 
 
-stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_signed_transaction_hex --data-file cli_output/tx_signed.json
+stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_signed_transaction_hex --data-file cli_output/tx_signed.json > cli_output/tx_signed.txt
+
+
+stjohn@judgement:bitcoin_toolset_python3$ cat cli_output/tx_signed.txt
 0100000001ceb493941bf44671994f853fe8585f330070956640bd30fe885d429183e48284090000008a483045022100e516545b7d5ec7222c11421da59171ce7fa1237723146ca82e0a90e1d160321302207fcfad1c1734f6f5af208e2f8f43842ac01fc9b8b93d803d11c0f27fc9b749f70140e8ade66f2cc0e43073f4ccea47db279bbab1a5e30a6e8ba49f12538b215c5b9e0d28bd080d35fde878081e8f05dbc23eeba02b544fa83e6d13b5f2145681e76dffffffff015f0c0300000000001976a9140f9ee78522f6cc8a88784ae02b0408e452d8025988ac0000000001000000
 
 
-stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task create_signed_transaction_hex --data-file cli_output/tx_signed.json > tx_signed.txt
-
-
 stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task verify_signed_transaction_hex --data-file cli_output/tx_signed.txt
-Valid signature(s).
+Valid signature.
 
 
 stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task decode_signed_transaction_hex --data-file cli_output/tx_signed.txt
@@ -710,9 +911,5 @@ stjohn@judgement:bitcoin_toolset_python3$ python cli.py --task decode_signed_tra
 
 
 ```
-
-
-
-
 
 
