@@ -1958,7 +1958,6 @@ def test_fee_rate_argument():
   a = Namespace(
     inputs = available_inputs_data,
     design = design,
-    allow_duplicate_output_address = True,
   )
   tx_unsigned = code.create_transaction.create_transaction(a)
   #print(tx_unsigned.to_json())
