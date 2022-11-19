@@ -3,11 +3,12 @@
 
 A pure Python 3 toolset for various Bitcoin operations.
 
+
 Capabilities:  
 - Derive an address from a private key.  
 - Create and sign a transaction.  
 - Verify a signed transaction.  
-- Decode a signed transaction into JSON for manual checks.  
+- Decode a signed transaction into JSON for manual & automated checks before broadcast.  
 - Sign & verify arbitrary data using a private key.  
 
 
@@ -19,7 +20,7 @@ Capabilities:
 
 # Notes
 
-This toolset is designed for use on Internet-connected ("online") and on perma-offline computers.
+This toolset is designed for use on both Internet-connected ("online") and on perma-offline computers.
 
 All signatures are made using deterministic ECDSA.
 
@@ -27,6 +28,7 @@ The default input selection approach is "largest_first", although "smallest_firs
 
 Transactions are kept in JSON format, with lots of additional data, until the last possible step where they are turned into hex. This means that transactions can be safely transported in JSON format to and from an offline computer for signing. On the online computer, the transaction can be double-checked (by eye as well as by code) and the signature verified prior to broadcast.
 
+Use of `pip` is restricted to secondary functionality (e.g. testing). All core Bitcoin-related code is stored within a tree of git submodules. This means that all sub-repos are linked to their parent by hash value, instead of by version number. Installation is performed via a recursive git clone of the top module in the tree i.e. this module.
 
 
 
