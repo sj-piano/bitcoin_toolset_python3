@@ -868,3 +868,112 @@ def test_duplicate_change_output_address_error():
 
 
 
+
+def test_add_input_selection_approach():
+  # We test that within the transaction the inputs are sorted according to the default input_selection_approach: 'largest_first'
+  # Input data:
+  private_keys_hex = [
+    'ec30b469f5e9b16d565168fbf4c9a60050feab0349ac03ff7611a3a76f2bcd4a',
+    '0f1691d20a6ee40f608b46404b9b42d44ee3599f51ebf48ea7439653044fa3f7',
+    '9c75fc45b299cf2796809481228d8601dd895f55ffb15f64b583e05bfda3a368',
+  ]
+  available_inputs_data = [
+    {
+      "address": "1B9dT1kcvJqhmF9FpanKbY2vRvNiV6qR2L",
+      "transaction_id": "45a69eab1c75342826687d2bea49b49133382622b4cd50783b0e81e49b95d158",
+      "previous_output_index": 1,
+      "bitcoin_amount": "0.00200000",
+    },
+    {
+      "address": "1DYKgP9cMG3wQhgowRJdrE4gRQvz6yMYEP",
+      "transaction_id": "45a69eab1c75342826687d2bea49b49133382622b4cd50783b0e81e49b95d158",
+      "previous_output_index": 0,
+      "bitcoin_amount": "0.00100000",
+    },
+    {
+      "address": "1LgQCG1DPBpk7Avdex5bSGqyKnxWv6spH2",
+      "transaction_id": "45a69eab1c75342826687d2bea49b49133382622b4cd50783b0e81e49b95d158",
+      "previous_output_index": 2,
+      "bitcoin_amount": "0.00500225",
+    },
+  ]
+  design = {
+    "change_address": "136oURWq1zjkdQHKcanE7TyA3o36ibARNM",
+    "fee": 225,
+    "max_fee": 250,
+    "max_spend_percentage": "100.00",
+    "outputs": [
+      {
+        "address": "1Fivx1V444aqjY85SxvzsEG5NjYdM6JWib",
+        "bitcoin_amount": "0.00800000",
+      },
+    ]
+  }
+  a = Namespace(
+    inputs = available_inputs_data,
+    design = design,
+  )
+  tx_unsigned = code.create_transaction.create_transaction(a)
+  #print(tx_unsigned.to_json())
+  assert tx_unsigned.fee == 225
+  assert tx_unsigned.inputs[0].bitcoin_amount == "0.00500225"
+  assert tx_unsigned.inputs[1].bitcoin_amount == "0.00200000"
+  assert tx_unsigned.inputs[2].bitcoin_amount == "0.00100000"
+
+
+
+
+def test_add_input_selection_approach_2():
+  # We test that within the transaction the inputs are sorted according to the input_selection_approach: 'smallest_first'
+  # Input data:
+  private_keys_hex = [
+    'ec30b469f5e9b16d565168fbf4c9a60050feab0349ac03ff7611a3a76f2bcd4a',
+    '0f1691d20a6ee40f608b46404b9b42d44ee3599f51ebf48ea7439653044fa3f7',
+    '9c75fc45b299cf2796809481228d8601dd895f55ffb15f64b583e05bfda3a368',
+  ]
+  available_inputs_data = [
+    {
+      "address": "1B9dT1kcvJqhmF9FpanKbY2vRvNiV6qR2L",
+      "transaction_id": "45a69eab1c75342826687d2bea49b49133382622b4cd50783b0e81e49b95d158",
+      "previous_output_index": 1,
+      "bitcoin_amount": "0.00200000",
+    },
+    {
+      "address": "1DYKgP9cMG3wQhgowRJdrE4gRQvz6yMYEP",
+      "transaction_id": "45a69eab1c75342826687d2bea49b49133382622b4cd50783b0e81e49b95d158",
+      "previous_output_index": 0,
+      "bitcoin_amount": "0.00100000",
+    },
+    {
+      "address": "1LgQCG1DPBpk7Avdex5bSGqyKnxWv6spH2",
+      "transaction_id": "45a69eab1c75342826687d2bea49b49133382622b4cd50783b0e81e49b95d158",
+      "previous_output_index": 2,
+      "bitcoin_amount": "0.00500225",
+    },
+  ]
+  design = {
+    "change_address": "136oURWq1zjkdQHKcanE7TyA3o36ibARNM",
+    "fee": 225,
+    "max_fee": 250,
+    "max_spend_percentage": "100.00",
+    "input_selection_approach": ["smallest_first"],
+    "outputs": [
+      {
+        "address": "1Fivx1V444aqjY85SxvzsEG5NjYdM6JWib",
+        "bitcoin_amount": "0.00800000",
+      },
+    ]
+  }
+  a = Namespace(
+    inputs = available_inputs_data,
+    design = design,
+  )
+  tx_unsigned = code.create_transaction.create_transaction(a)
+  #print(tx_unsigned.to_json())
+  assert tx_unsigned.fee == 225
+  assert tx_unsigned.inputs[0].bitcoin_amount == "0.00100000"
+  assert tx_unsigned.inputs[1].bitcoin_amount == "0.00200000"
+  assert tx_unsigned.inputs[2].bitcoin_amount == "0.00500225"
+
+
+
