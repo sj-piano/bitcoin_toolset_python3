@@ -312,26 +312,26 @@ Sample `design.json`:
 ```
 
 Obligatory arguments:  
-- change_address  
-- fee or fee_rate  
-- max_fee  
-- max_spend_percentage  
+- `change_address`  
+- `fee` or `fee_rate`  
+- `max_fee`  
+- `max_spend_percentage`  
 
 Optional arguments:  
-- input_selection_approach  
+- `input_selection_approach`  
 
 
-change_address: Inputs will be selected from the available list until their combined value exceeds the total output value + the fee value. Any surplus value will be sent to the change address.
+`change_address`: Inputs will be selected from the available list until their combined value exceeds the total output value + the fee value. Any surplus value will be sent to the change address.
 
-fee: The transaction fee in satoshi. Can be integer or string.
+`fee`: The transaction fee in satoshi. Can be integer or string.
 
-fee_rate: An alternative option to `fee`. The transaction fee rate in satoshi/byte. Can be integer or string. If string, can be a float value.
+`fee_rate`: An alternative option to `fee`. The transaction fee rate in satoshi/byte. Can be integer or string. If string, can be a float value.
 
-max_fee: The maximum fee in satoshi that is permitted in the transaction. Can be integer or string.
+`max_fee`: The maximum fee in satoshi that is permitted in the transaction. Can be integer or string.
 
-max_spend_percentage: Maximum percentage of total available input value that may be spent in the transaction. Can be integer or string. If string, can be a float value.
+`max_spend_percentage`: Maximum percentage of total available input value that may be spent in the transaction. Can be integer or string. If string, can be a float value.
 
-input_selection_approach: A list of strings. Currently, can contain only one value, which can be either 'largest_first' (the default value) or 'smallest_first'. Choosing largest inputs first from the available list minimises transaction fees. However, sometimes it is desirable to select the smallest inputs first, often in order to consolidate inputs into larger ones during periods of relatively low network fees.
+`input_selection_approach`: A list of strings. Currently, can contain only one value, which can be either 'largest_first' (the default value) or 'smallest_first'. Choosing largest inputs first from the available list minimises transaction fees. However, sometimes it is desirable to select the smallest inputs first, often in order to consolidate inputs into larger ones during periods of relatively low network fees.
 
 
 
