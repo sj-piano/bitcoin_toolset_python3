@@ -3,7 +3,33 @@
 
 A pure Python 3 toolset for various Bitcoin operations.
 
-Examples: Derive an address from a private key, create and sign a transaction.
+Capabilities:  
+- Derive an address from a private key.  
+- Create and sign a transaction.  
+- Verify a signed transaction.  
+- Decode a signed transaction into JSON for manual checks.  
+- Sign & verify arbitrary data using a private key.  
+
+
+
+
+
+
+
+
+# Notes
+
+This toolset is designed for use on Internet-connected ("online") and on perma-offline computers.
+
+All signatures are made using deterministic ECDSA.
+
+The default input selection approach is "largest_first", although "smallest_first" is also an option (useful for consolidating inputs when networks fees are relatively low).
+
+Transactions are kept in JSON format, with lots of additional data, until the last possible step where they are turned into hex. This means that transactions can be safely transported in JSON format to and from an offline computer for signing. On the online computer, the transaction can be double-checked (by eye as well as by code) and the signature verified prior to broadcast.
+
+
+
+
 
 
 
@@ -209,6 +235,10 @@ Settings for pycodestyle are stored in the file `tox.ini`.
 
 
 
+
+
+
+
 # Environment
 
 
@@ -220,6 +250,10 @@ Successfully run under the following environments:
 - pytest 6.1.2  
 
 Recommendation: Use `pyenv` to install these specific versions of `python` and `pytest`.
+
+
+
+
 
 
 
@@ -250,6 +284,10 @@ pip install -r requirements.txt
 
 
 
+
+
+
+
 # Guidance for `design.json`
 
 
@@ -261,6 +299,7 @@ Sample `design.json`:
   "fee": 225,
   "max_fee": 250,
   "max_spend_percentage": "100.00",
+  "input_selection_approach": ["largest_first"],
   "outputs": [
     {
       "address": "12RbVkKwHcwHbMZmnSVAyR4g88ZChpQD6f",
@@ -276,6 +315,9 @@ Obligatory arguments:
 - max_fee  
 - max_spend_percentage  
 
+Optional arguments:  
+- input_selection_approach  
+
 
 change_address: Inputs will be selected from the available list until their combined value exceeds the total output value + the fee value. Any surplus value will be sent to the change address.
 
@@ -287,7 +329,7 @@ max_fee: The maximum fee in satoshi that is permitted in the transaction. Can be
 
 max_spend_percentage: Maximum percentage of total available input value that may be spent in the transaction. Can be integer or string. If string, can be a float value.
 
-
+input_selection_approach: A list of strings. Currently, can contain only one value, which can be either 'largest_first' (the default value) or 'smallest_first'. Choosing largest inputs first from the available list minimises transaction fees. However, sometimes it is desirable to select the smallest inputs first, often in order to consolidate inputs into larger ones during periods of relatively low network fees.
 
 
 
