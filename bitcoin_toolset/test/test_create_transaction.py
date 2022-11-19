@@ -178,6 +178,7 @@ def test_add_input_to_pay_fee():
     "fee": 225,
     "max_fee": 250,
     "max_spend_percentage": "100.00",
+    "input_selection_approach": ["smallest_first"],
     "outputs": [
       {
         "address": "12PX5jPyQYejyrU79nZUDmKXvB3ttMfDqZ",
@@ -279,15 +280,15 @@ def test_add_input_to_pay_fee():
   }
   tx_signed_expected = {}
   tx_signed_hex_expected = """
-
 """.strip()
   a = Namespace(
     inputs = available_inputs_data,
     design = design
   )
   tx_unsigned = code.create_transaction.create_transaction(a)
-  assert tx_unsigned.fee == 225
   #print(tx_unsigned.to_json())
+  assert tx_unsigned.fee == 225
+  assert len(tx_unsigned.inputs) == 2
   assert tx_unsigned.to_dict() == tx_unsigned_expected
   tx_signed = tx_unsigned.sign(private_keys_hex)
   #print(tx_signed.to_json())
@@ -335,6 +336,7 @@ def test_add_input_to_pay_fee_2():
     "fee": 225,
     "max_fee": 250,
     "max_spend_percentage": "100.00",
+    "input_selection_approach": ["smallest_first"],
     "outputs": [
       {
         "address": "1Fivx1V444aqjY85SxvzsEG5NjYdM6JWib",
@@ -442,9 +444,10 @@ def test_add_input_to_pay_fee_2():
     design = design
   )
   tx_unsigned = code.create_transaction.create_transaction(a)
+  #print(tx_unsigned.to_json())
   assert tx_unsigned.fee == 225
-  print(tx_unsigned.to_json())
-  #assert tx_unsigned.to_dict() == tx_unsigned_expected
+  assert len(tx_unsigned.inputs) == 2
+  assert tx_unsigned.to_dict() == tx_unsigned_expected
   tx_signed = tx_unsigned.sign(private_keys_hex)
   #print(tx_signed.to_json())
   #assert tx_signed.to_dict() == tx_signed_expected
@@ -670,6 +673,7 @@ def test_fee_rate_argument_4():
     "fee_rate": "100",
     "max_fee": 50000,
     "max_spend_percentage": "100.00",
+    "input_selection_approach": ["smallest_first"],
     "outputs": [
       {
         "address": "136oURWq1zjkdQHKcanE7TyA3o36ibARNM",
@@ -691,7 +695,7 @@ def test_fee_rate_argument_4():
     allow_duplicate_output_address = True,
   )
   tx_unsigned = code.create_transaction.create_transaction(a)
-  print(tx_unsigned.to_json())
+  #print(tx_unsigned.to_json())
   assert tx_unsigned.fee == 43600
   #assert tx_unsigned.to_dict() == tx_unsigned_expected
   tx_signed = tx_unsigned.sign(private_keys_hex, random_values_hex)
