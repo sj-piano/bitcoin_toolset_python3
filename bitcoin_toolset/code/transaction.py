@@ -431,7 +431,6 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
     return signature_hex
 
 
-
   def to_hex_signable_form(self, input_index):
     d = self.to_dict_signable_form(input_index)
     s = ''
