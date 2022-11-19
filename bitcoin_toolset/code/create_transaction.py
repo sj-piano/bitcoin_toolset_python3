@@ -59,10 +59,23 @@ def setup(
 
 
 
+# Custom errors
 
-class OutputValueNotCovered(Exception): pass
-class OutputAndFeeValueNotCovered(Exception): pass
-class DuplicateOutputAddressError(Exception): pass
+
+class OutputValueNotCovered(Exception):
+  pass
+
+
+class OutputAndFeeValueNotCovered(Exception):
+  pass
+
+
+class DuplicateOutputAddressError(Exception):
+  pass
+
+
+
+
 
 
 

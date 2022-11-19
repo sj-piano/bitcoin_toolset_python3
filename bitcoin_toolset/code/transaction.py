@@ -290,12 +290,12 @@ class Transaction:
         'bitcoin_amount': None,
       },
       'estimated_size_bytes': estimated_size_bytes,
-      'estimated_fee_rate' : {
+      'estimated_fee_rate': {
         'satoshi_per_byte': estimated_fee_rate_satoshi,
         'bitcoin_per_byte': estimated_fee_rate_bitcoin,
       },
       'size_bytes': None,
-      'fee_rate' : {
+      'fee_rate': {
         'satoshi_amount': None,
         'bitcoin_amount': None,
       },
