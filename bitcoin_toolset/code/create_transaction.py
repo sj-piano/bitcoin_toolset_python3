@@ -62,6 +62,7 @@ def setup(
 
 class OutputValueNotCovered(Exception): pass
 class OutputAndFeeValueNotCovered(Exception): pass
+class DuplicateOutputAddressError(Exception): pass
 
 
 
@@ -88,6 +89,7 @@ inputs design
   received1 = list(vars(a).keys())
   v.validate_list_contains_items(received1, expected)
   allow_duplicate_output_address = a.allow_duplicate_output_address if 'allow_duplicate_output_address' in received1 else None
+  change_output_index = a.change_output_index if 'change_output_index' in received1 else None
 
   # Unpack arguments.
   design = a.design
@@ -110,6 +112,10 @@ inputs design
   # Validate arguments.
   validate_inputs(a.inputs)
   validate_design(a.design)
+  if allow_duplicate_output_address is not None:
+    v.validate_boolean(allow_duplicate_output_address)
+  if change_output_index is not None:
+    v.validate_whole_number(change_output_index)
 
   log('All arguments validated. No problems found.')
 
@@ -233,7 +239,7 @@ Output {i}:
     if count > 1:
       if not allow_duplicate_output_address:
         msg = "Multiple outputs ({}) send to this address: {}".format(count, address)
-        raise ValueError(msg)
+        raise DuplicateOutputAddressError(msg)
 
 
 
@@ -383,9 +389,28 @@ Output {i}:
     log(msg)
     # Assign any surplus input value to the change address.
     change_outputs = [x for x in outputs if x.address == change_address]
-    if len(change_outputs) > 1:
-      raise ValueError
-    elif len(change_outputs) == 1:
+    n_change_outputs = len(change_outputs)
+    if n_change_outputs > 1:
+      if change_output_index is None:
+        msg = "Multiple outputs ({}) send to the change address: {}"
+        msg = msg.format(n_change_outputs, change_address)
+        raise ValueError(msg)
+      if not change_output_index < n_change_outputs:
+        msg = "change_output_index ({}) must be less than the number of change outputs ({})."
+        msg = msg.format(change_output_index, n_change_outputs)
+        raise ValueError(msg)
+      change_output = change_outputs[change_output_index]
+      # Assign the surplus value to the change output.
+      old_amount = change_output.satoshi_amount
+      new_amount = old_amount + surplus
+      change_output.set_satoshi_amount(new_amount)
+      old_amount_bitcoin = basic.satoshi_to_bitcoin(old_amount)
+      msg = "{} outputs send to the same address. Out of this group, output {} has been selected to receive change."
+      msg = msg.format(n_change_outputs, change_output_index)
+      msg += "\n- Old change amount: {} bitcoin ({} satoshi)"
+      msg = msg.format(old_amount_bitcoin, old_amount)
+      log(msg)
+    elif n_change_outputs == 1:
       change_output = change_outputs[0]
       # Assign the surplus value to the change output.
       old_amount = change_output.satoshi_amount
@@ -394,7 +419,7 @@ Output {i}:
       old_amount_bitcoin = basic.satoshi_to_bitcoin(old_amount)
       msg = "Change address found within outputs."
       msg += "\n- Old change amount: {} bitcoin ({} satoshi)"
-      msg = msg.format(old_amount, old_amount_bitcoin)
+      msg = msg.format(old_amount_bitcoin, old_amount)
       log(msg)
     else:
       # Create a new output for the change address if one doesn't already exist.
@@ -436,6 +461,7 @@ Output {i}:
   # [SECTION]: Manage spending limit.
   # Confirm that the amount that we are going to spend does not exceed the permitted limit.
   # - Note that the permitted limit is the total available input value, not the total selected input value.
+  # - Note that in the edge case where there are multiple outputs that send to the change address, the results calculated here will be incorrect.
   msg = "Maximum percentage of input value (prior to fee subtraction) that can be spent: {:.2f}%".format(max_spend_percentage)
   msg += '\n- Note: "spend" == send bitcoin to any address that is not the change address.'
   log(msg)
