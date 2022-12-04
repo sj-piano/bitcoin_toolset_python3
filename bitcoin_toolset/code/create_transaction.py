@@ -121,6 +121,8 @@ inputs design
     max_fee = design['max_fee']
     if isinstance(max_fee, str):
       design['max_fee'] = int(max_fee)
+  for input_ in a.inputs:
+    input_['previous_output_index'] = int(input_['previous_output_index'])
 
   # Validate arguments.
   validate_inputs(a.inputs)
@@ -240,7 +242,7 @@ Output {i}:
   for i, x in enumerate(inputs):
     address = x.address
     txid = x.txid
-    index = x.previous_output_index
+    index = x.previous_output_index_int
     ba = x.bitcoin_amount
     sa = x.satoshi_amount
     msg = '''
