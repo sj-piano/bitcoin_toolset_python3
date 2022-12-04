@@ -142,7 +142,7 @@ inputs design
   change_address = design['change_address']
   max_fee = design['max_fee']
   max_spend_percentage = design['max_spend_percentage']
-  input_selection_approach = design['input_selection_approach'] if 'input_selection_approach' in received else ["largest_first"]
+  input_selection_approaches = design['input_selection_approaches'] if 'input_selection_approaches' in received else ["largest_first"]
 
 
 
@@ -219,20 +219,23 @@ Output {i}:
 
 
 
-  # [SECTION]: Sort the inputs according to the input_selection_approach(es).
-  if len(input_selection_approach) > 1:
+  # [SECTION]: Sort the inputs according to the input_selection_approaches.
+  if len(input_selection_approaches) > 1:
     raise NotImplementedError
-  approach = input_selection_approach[0]
+  approach = input_selection_approaches[0]
   if approach == 'largest_first':
     inputs.sort(key=lambda x: x.satoshi_amount, reverse=True)
   elif approach == 'smallest_first':
     inputs.sort(key=lambda x: x.satoshi_amount)
+  elif approach == 'all':
+    # sort by largest_first in any case.
+    inputs.sort(key=lambda x: x.satoshi_amount, reverse=True)
   else:
     msg = "Unrecognised input_selection_approach: {}".format(approach)
     raise NotImplementedError(msg)
-  plural = 'es' if len(input_selection_approach) > 1 else ''
+  plural = 'es' if len(input_selection_approaches) > 1 else ''
   msg = "{} inputs sorted according to the input selection approach{}: {}"
-  msg = msg.format(len(inputs), plural, str(input_selection_approach))
+  msg = msg.format(len(inputs), plural, str(input_selection_approaches))
   log(msg)
 
 
@@ -402,14 +405,17 @@ Output {i}:
     msg = msg.format(surplus_bitcoin, surplus)
     log(msg)
     msg = "Selecting inputs according to input selection approaches {} until [total selected input value] exceeds [total output + fee value]."
-    msg = msg.format(input_selection_approach)
+    msg = msg.format(input_selection_approaches)
     log(msg)
     for input_ in inputs:
       selected_inputs_index += 1
       total_selected_input += input_.satoshi_amount
       selected_inputs.append(input_)
       if total_selected_input >= total_output_plus_fee:
-        break
+        if input_selection_approaches[0] == 'all':
+          pass
+        else:
+          break
 
   msg = "Selected inputs: {}".format(selected_inputs_index)
   log(msg)
@@ -594,7 +600,7 @@ def validate_design(design):
   #   "fee": 225,
   #   "max_fee": 250,
   #   "max_spend_percentage": "100.00",
-  #   "input_selection_approach": ["smallest_first"],
+  #   "input_selection_approaches": ["smallest_first"],
   #   "outputs": [
   #     {
   #       "address": "12RbVkKwHcwHbMZmnSVAyR4g88ZChpQD6f",
@@ -615,7 +621,7 @@ change_address max_fee max_spend_percentage outputs
     fee_rate = design['fee_rate'] if 'fee_rate' in received else None
     max_fee = design['max_fee']
     max_spend_percentage = design['max_spend_percentage']
-    input_selection_approach = design['input_selection_approach'] if 'input_selection_approach' in received else None
+    input_selection_approaches = design['input_selection_approaches'] if 'input_selection_approaches' in received else None
     outputs = design['outputs']
 
     # Validate change_address
@@ -662,17 +668,26 @@ Design must contain exactly one of these keys:
     if fee_rate:
       v.validate_string_is_whole_number_or_decimal(fee_rate)
 
-    # Validate input_selection_approach
+    # Validate input_selection_approaches
     # - Ensure that conflicting input selection approaches are not used together.
-    if input_selection_approach:
-      approaches = input_selection_approach
+    if input_selection_approaches:
+      approaches = input_selection_approaches
       log(approaches)
       v.validate_list(approaches)
       available_approaches = [
+        'all',
         'largest_first', 'smallest_first',
         'any_address', 'one_address_at_a_time',
         'largest_address_first', 'smallest_address_first',
       ]
+      for approach in approaches:
+        if approach not in available_approaches:
+          raise ValueError
+      # At the moment, 'all' conflicts with any other approach.
+      # - Future: Might want to order the inputs in a particular way, even if selecting 'all'.
+      if 'all' in approaches:
+        if len(approaches) > 1:
+          raise ValueError
       conflicts = [
         ('largest_first', 'smallest_first'),
         ('any_address', 'one_address_at_a_time'),
