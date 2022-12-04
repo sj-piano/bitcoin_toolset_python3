@@ -88,8 +88,10 @@ def estimate_transaction_size(n_inputs, n_outputs):
   # - previous_output_hash (32 bytes)
   # - previous_output_index (4 bytes)
   # - script_length (1-byte var_int)
-  # - scriptSig [approximately 138 bytes]
+  # - scriptSig [approximately 138-139 bytes]
   # - sequence (4 bytes)
+  # 1 input ~= 180 bytes. So, at 1 sat per byte, if the input contains less than 180 satoshi, you lose money if you spend it. This ignores the basic cost of the transaction.
+  # - However, if you're already building a transaction for a separate reason at the low fee rate of 1 sat/byte, it makes sense to tack on any input with > 180 satoshi.
   # A standard output contains:
   # - value (8 bytes)
   # - script_length (1-byte var_int)
