@@ -60,6 +60,13 @@ python cli.py --task get_private_key_wif --private-key-hex="01"
 
 
 
+python cli.py --task private_key_wif_to_hex --private-key-wif="5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+
+# result:
+# 0000000000000000000000000000000000000000000000000000000000000001
+
+
+
 python cli.py --task get_public_key --private-key-hex="01"
 
 # result:
