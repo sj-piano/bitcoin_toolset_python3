@@ -256,6 +256,16 @@ def private_key_hex_to_wif(private_key_hex):
 
 
 
+def private_key_wif_to_hex(private_key_wif):
+  private_key_hex = base58check_to_hex(private_key_wif)
+  # Remove "80" byte from the front.
+  private_key_hex = private_key_hex[2:]
+  ecdsa.validate_private_key_hex(private_key_hex)
+  return private_key_hex
+
+
+
+
 def script_sig_to_signature_hex_and_public_key_hex(script_sig):
   v.validate_hex(script_sig)
   b = script_sig[0:2]  # b = byte

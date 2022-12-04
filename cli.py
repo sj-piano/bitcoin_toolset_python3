@@ -100,6 +100,11 @@ def main():
     help="Path to directory that contains .txt files that each contain a single private key.",
   )
 
+  group.add_argument(
+    '--private-key-wif', dest='private_key_wif', type=str,
+    help="A private key in WIF (Wallet Import Format).",
+  )
+
   parser.add_argument(
     '--public-key-hex', dest='public_key_hex', type=str,
     help="A public key in hex string form.",
@@ -258,6 +263,7 @@ def main():
   tasks = """
 hello hello2 get_python_version
 get_private_key_wif
+private_key_wif_to_hex
 get_public_key
 get_address
 sign_data
@@ -327,6 +333,13 @@ def get_python_version(a):
 def get_private_key_wif(a):
   private_key_wif = bitcoin_toolset.code.basic.private_key_hex_to_wif(a.private_key_hex)
   print(private_key_wif)
+
+
+
+
+def private_key_wif_to_hex(a):
+  private_key_hex = bitcoin_toolset.code.basic.private_key_wif_to_hex(a.private_key_wif)
+  print(private_key_hex)
 
 
 
