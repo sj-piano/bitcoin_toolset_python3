@@ -511,7 +511,7 @@ Output {i}:
     change = change_output.satoshi_amount
   change_bitcoin = basic.satoshi_to_bitcoin(change)
   msg = "Change amount: {} bitcoin ({} satoshi)"
-  msg = msg.format(change, change_bitcoin)
+  msg = msg.format(change_bitcoin, change)
   log(msg)
 
 
