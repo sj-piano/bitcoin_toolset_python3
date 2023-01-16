@@ -282,22 +282,28 @@ def script_sig_to_signature_hex_and_public_key_hex(script_sig):
   n = var_int_to_int(b)
   m = n*2+2
   signature_hex = script_sig[2:m]
-  #deb("signature_hex: {}".format(signature_hex))
+  deb("signature_hex (DER-encoded, 1-byte hash type appended) ({} bytes): {}".format(hex_len(signature_hex), signature_hex))
   b = script_sig[m:m+2]
   n2 = var_int_to_int(b)
   m2 = m+2 + n2*2
   public_key_hex = script_sig[m+2:m2]
-  #deb("public_key_hex: {}".format(public_key_hex))
+  deb("public_key_hex ({} bytes): {}".format(hex_len(public_key_hex), public_key_hex))
   # Check that last byte of signature is "01" (hash_type SIGHASH_ALL as a single byte) and remove it.
   b = signature_hex[-2:]
+  msg = "1-byte hash type appended to signature_hex = {}".format(b)
+  deb(msg)
   if b != '01':
     raise ValueError
   signature_hex = signature_hex[:-2]
+  deb("signature_hex (DER-encoded) ({} bytes): {}".format(hex_len(signature_hex), signature_hex))
   # Check that first byte of public_key is "04" ("uncompressed") and remove it.
   b = public_key_hex[:2]
+  msg = "1-byte compression type prepended to public key = {}".format(b)
+  deb(msg)
   if b != '04':
     raise ValueError
   public_key_hex = public_key_hex[2:]
+  deb("public_key_hex ({} bytes): {}".format(hex_len(public_key_hex), public_key_hex))
   return signature_hex, public_key_hex
 
 
@@ -321,13 +327,22 @@ def signature_hex_and_public_key_hex_to_script_sig(signature_hex, public_key_hex
   v.validate_hex_length(public_key_hex, 64)
   #deb("signature_hex: {}".format(signature_hex))
   #deb("public_key_hex: {}".format(public_key_hex))
-  # Add '04' ("uncompressed") prefix to public_key_hex.
+  # Add '04' ("uncompressed") compression type prefix to public_key_hex.
   public_key_hex = '04' + public_key_hex
+  msg = "public_key_hex (1-byte compression type prepended) ({} bytes) = {}".format(hex_len(public_key_hex), public_key_hex)
+  deb(msg)
   signature_hex_pushdata = int_to_var_int(hex_len(signature_hex))
   public_key_hex_pushdata = int_to_var_int(hex_len(public_key_hex))
-  #deb("public_key_hex_pushdata: {}".format(public_key_hex_pushdata))
+  msg = "signature_hex_pushdata ({} bytes) = {}".format(hex_len(signature_hex_pushdata), signature_hex_pushdata)
+  deb(msg)
+  msg = "public_key_hex_pushdata ({} bytes) = {}".format(hex_len(public_key_hex_pushdata), public_key_hex_pushdata)
+  deb(msg)
   script_sig = signature_hex_pushdata + signature_hex + public_key_hex_pushdata + public_key_hex
   script_length = int_to_var_int(hex_len(script_sig))
+  msg = "script_sig ({} bytes) = {}".format(hex_len(script_sig), script_sig)
+  deb(msg)
+  msg = "script_length ({} bytes) = {}".format(hex_len(script_length), script_length)
+  deb(msg)
   return script_sig, script_length
 
 
