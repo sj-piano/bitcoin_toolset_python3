@@ -415,9 +415,10 @@ def create_signed_transaction_json(a):
   tx_signed = tx_unsigned.sign(a.private_keys_hex)
   #deb(tx_signed.to_json())
   print(tx_signed.to_json())
-  valid_signatures = tx_signed.verify()
-  plural = 's' if len(tx_signed.inputs) > 1 else ''
-  if not valid_signatures:
+  invalid_signatures = tx_signed.verify()
+  n_inputs = len(tx_signed.inputs)
+  plural = 's' if n_inputs > 1 else ''
+  if invalid_signatures:
     msg = "Invalid signature{}!".format(plural)
     raise ValueError(msg)
 
@@ -427,9 +428,10 @@ def create_signed_transaction_json(a):
 def verify_signed_transaction_json(a):
   tx_signed_json = a.data
   tx_signed = transaction.Transaction.from_json(tx_signed_json)
-  valid_signatures = tx_signed.verify()
-  plural = 's' if len(tx_signed.inputs) > 1 else ''
-  if valid_signatures:
+  invalid_signatures = tx_signed.verify()
+  n_inputs = len(tx_signed.inputs)
+  plural = 's' if n_inputs > 1 else ''
+  if not invalid_signatures:
     msg = "Valid signature{}.".format(plural)
     print(msg)
   else:
@@ -444,9 +446,10 @@ def create_signed_transaction_hex(a):
   tx_signed = transaction.Transaction.from_json(tx_signed_json)
   valid_signatures = tx_signed.verify()
   print(tx_signed.to_hex_signed_form())
-  plural = 's' if len(tx_signed.inputs) > 1 else ''
-  if not valid_signatures:
-    msg = "Invalid signature{}!".format(plural)
+  n_inputs = len(tx_signed.inputs)
+  plural = 's' if n_inputs > 1 else ''
+  if invalid_signatures:
+    msg = "Signed transaction: {} invalid signature{} detected! Please re-run using the --debug flag.".format(invalid_signatures, plural)
     raise ValueError(msg)
 
 
@@ -455,11 +458,12 @@ def create_signed_transaction_hex(a):
 def decode_signed_transaction_hex(a):
   tx_signed_hex = a.data.strip()
   tx_signed = transaction.Transaction.from_hex_signed(tx_signed_hex)
-  valid_signatures = tx_signed.verify()
+  invalid_signatures = tx_signed.verify()
   print(tx_signed.to_json())
-  plural = 's' if len(tx_signed.inputs) > 1 else ''
-  if not valid_signatures:
-    msg = "Invalid signature{}!".format(plural)
+  n_inputs = len(tx_signed.inputs)
+  plural = 's' if n_inputs > 1 else ''
+  if invalid_signatures:
+    msg = "Signed transaction: {} invalid signature{} detected! Please re-run using the --debug flag.".format(invalid_signatures, plural)
     raise ValueError(msg)
 
 
@@ -468,10 +472,11 @@ def decode_signed_transaction_hex(a):
 def verify_signed_transaction_hex(a):
   tx_signed_hex = a.data.strip()
   tx_signed = transaction.Transaction.from_hex_signed(tx_signed_hex)
-  valid_signatures = tx_signed.verify()
-  plural = 's' if len(tx_signed.inputs) > 1 else ''
-  if not valid_signatures:
-    msg = "Invalid signature{}!".format(plural)
+  invalid_signatures = tx_signed.verify()
+  n_inputs = len(tx_signed.inputs)
+  plural = 's' if n_inputs > 1 else ''
+  if invalid_signatures:
+    msg = "Signed transaction: {} invalid signature{} detected! Please re-run using the --debug flag.".format(invalid_signatures, plural)
     raise ValueError(msg)
   msg = "Valid signature{}.".format(plural)
   print(msg)
