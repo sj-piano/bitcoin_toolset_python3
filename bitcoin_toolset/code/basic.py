@@ -120,7 +120,15 @@ def signature_from_der(signature_hex):
   r, s = ecdsa.ecdsa.code.utility.sigdecode_der(signature_bytes, order)
   r_hex = int_to_hex(r)
   s_hex = int_to_hex(s)
+  # Pad r and s with leading 0 bytes, so that we ensure that they are 32 bytes long.
+  r_hex = pad_hex(r_hex, n_bytes=32)
+  s_hex = pad_hex(s_hex, n_bytes=32)
   signature_hex = r_hex + s_hex
+  msg = "Signature decoded from DER encoding:"
+  msg += "\nsignature_hex ({} bytes) = {}".format(hex_len(signature_hex), signature_hex)
+  msg += "\nr_hex ({} bytes) = {}".format(hex_len(r_hex), r_hex)
+  msg += "\ns_hex ({} bytes) = {}".format(hex_len(s_hex), s_hex)
+  deb(msg)
   return signature_hex
 
 
@@ -633,7 +641,24 @@ def int_to_var_int(n):
 
 
 
+def pad_hex(x, n_bytes):
+  v.validate_hex(x)
+  v.validate_integer(n_bytes)
+  n = hex_len(x)
+  if n_bytes < n:
+    msg = "Hex value is already longer than desired padded length. Hex value: {}".format(x)
+    raise ValueError(msg)
+  m = n_bytes - n
+  if m > 0:
+    # Add leading zero hex bytes at the left-hand side.
+    x = '00' * m + x
+  return x
+
+
+
+
 def pad_hex_le(x, n_bytes):
+  # Used for padding hex in little-endian format.
   v.validate_hex(x)
   v.validate_integer(n_bytes)
   n = hex_len(x)
