@@ -18,6 +18,7 @@ from . import transaction_output
 
 # Shortcuts
 v = util.validate
+hex_len = basic.hex_len
 
 
 
@@ -307,7 +308,7 @@ class Transaction:
         'bitcoin_amount': basic.satoshi_to_bitcoin(self.change),
       }
     if self.signed:
-      size_bytes = basic.hex_len(self.to_hex_signed_form())
+      size_bytes = hex_len(self.to_hex_signed_form())
       d['size_bytes'] = size_bytes
       if self.fee is not None:
         fee_rate = Decimal(self.fee) / size_bytes
@@ -371,6 +372,8 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
     t.outputs = outputs
     if d['signed'] is True:
       assert t.signed is True
+    msg = 'Transaction successfully loaded from JSON format and validated.'
+    log(msg)
     return t
 
 
@@ -392,25 +395,42 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
       address = basic.private_key_hex_to_address(private_key_hex)
       map_address_to_private_key_hex[address] = private_key_hex
     known_addresses = sorted(map_address_to_private_key_hex.keys())
-    for input_index, input_ in enumerate(self.inputs):
-      random_value_hex = random_values_hex[input_index] if random_values_hex else None
+    n_inputs = len(self.inputs)
+    for i, input_ in enumerate(self.inputs):
+      input_index = i
+      random_value_hex = random_values_hex[i] if random_values_hex else None
       address = input_.address
+      prefix = '' if random_values_hex is None else "non-"
+      msg = "Creating {}deterministic signature {} of {}. Source address = {}".format(prefix, i + 1, n_inputs, address)
+      log(msg)
       if address not in known_addresses:
         raise ValueError
       private_key_hex = map_address_to_private_key_hex[address]
       # Derive the public_key_hex from the private_key. This will be included in the scriptSig.
-      input_.public_key_hex = basic.private_key_hex_to_public_key_hex(private_key_hex)
+      public_key_hex = basic.private_key_hex_to_public_key_hex(private_key_hex)
+      input_.public_key_hex = public_key_hex
+      msg = "public_key_hex ({} bytes) = {}".format(hex_len(public_key_hex), public_key_hex)
+      deb(msg)
       signature_hex = self.create_signature_for_one_input(input_index, private_key_hex, random_value_hex)
+      msg = "signature_hex ({} bytes) = {}".format(hex_len(signature_hex), signature_hex)
+      deb(msg)
       # Convert the signature to DER encoding.
       signature_hex = basic.signature_to_der(signature_hex)
+      msg = "signature_hex (DER-encoded) ({} bytes) = {}".format(hex_len(signature_hex), signature_hex)
+      deb(msg)
       # Append hash_type SIGHASH_ALL (as a single byte) "01" to DER-encoded signature.
       signature_hex += self.hash_type_1_byte
+      msg = "signature_hex (DER-encoded, 1-byte hash type appended) ({} bytes) = {}".format(hex_len(signature_hex), signature_hex)
+      deb(msg)
       script_sig, script_length = basic.signature_hex_and_public_key_hex_to_script_sig(signature_hex, input_.public_key_hex)
       script_length_int = basic.var_int_to_int(script_length)
       # Storing the scriptSig and its script_length in the input-used-for-signing, for every input, completes the sign() process.
       input_.script_length = script_length
       input_.script_length_int = script_length_int
       input_.script_sig = script_sig
+    plural = 's' if n_inputs > 0 else ''
+    msg = "Transaction signed with {} signature{}.".format(n_inputs, plural)
+    log(msg)
     return self
 
 
@@ -474,7 +494,12 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
 
 
   def verify(self):
-    for input_index, input_ in enumerate(self.inputs):
+    invalid_signatures = 0
+    n_inputs = len(self.inputs)
+    for i, input_ in enumerate(self.inputs):
+      msg = "Verifying signature {} of {}.".format(i+1, n_inputs)
+      deb(msg)
+      input_index = i
       script_sig = input_.script_sig
       if script_sig is None:
         raise ValueError
@@ -482,9 +507,17 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
       # Convert DER-encoded signature to concatenated r & s.
       signature_hex = basic.signature_from_der(signature_hex)
       valid_signature = self.verify_signature_for_one_input(input_index, public_key_hex, signature_hex)
-      if not valid_signature:
-        return False
-    return True
+      if valid_signature:
+        msg = "Signature {} of {} is valid.".format(i + 1, n_inputs)
+        deb(msg)
+      else:
+        msg = "Signature {} of {} is invalid!".format(i + 1, n_inputs)
+        logger.error(msg)
+        invalid_signatures += 1
+    plural = 's' if n_inputs > 1 else ''
+    msg = "Transaction verified: {} valid signature{}".format(n_inputs, plural)
+    log(msg)
+    return invalid_signatures
 
 
   def verify_signature_for_one_input(self, input_index, public_key_hex, signature_hex):
@@ -512,6 +545,8 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
       else:
         # Add the stored hex value to the hex result.
         s += v
+    msg = "Signed transaction converted to hex form."
+    log(msg)
     return s
 
 
@@ -543,7 +578,8 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
     # - This is used to load (and validate) signed tx hex data.
     # - We build and return a tx instance, so that we can call tx.verify().
     # -- We only the need to store the information returned in to_dict_signable_form().
-    deb(s)
+    log("Loading signed transaction from hex.")
+    deb("hex received: " + s)
     n = basic.hex_len(s)
     deb('hex length: {}'.format(n))
     hex_bytes = [s[i:i+2] for i in range(0, len(s), 2)]
@@ -576,8 +612,8 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
       i += script_length_int
       deb('- script_sig: {}'.format(script_sig))
       signature_hex, public_key_hex = basic.script_sig_to_signature_hex_and_public_key_hex(script_sig)
-      deb('- signature_hex: {}'.format(signature_hex))
-      deb('- public_key_hex: {}'.format(public_key_hex))
+      deb('- signature_hex ({} bytes): {}'.format(hex_len(signature_hex), signature_hex))
+      deb('- public_key_hex ({} bytes): {}'.format(hex_len(public_key_hex), public_key_hex))
       sequence = ''.join(hex_bytes[i:i+4])
       i += 4
       deb('- sequence: {}'.format(sequence))
@@ -596,7 +632,9 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
       deb('output {}:'.format(x))
       value = ''.join(hex_bytes[i:i+8])
       i += 8
-      deb('- value: {}'.format(value))
+      satoshi_amount = basic.hex_le_to_int(value)
+      bitcoin_amount = basic.satoshi_to_bitcoin(satoshi_amount)
+      deb('- value: {} ({} bitcoin, {} satoshi)'.format(value, bitcoin_amount, satoshi_amount))
       script_length = ''.join(hex_bytes[i])
       i += 1
       deb('- script_length: {}'.format(script_length))
@@ -619,6 +657,8 @@ block_lock_time hash_type_4_byte hash_type_1_byte signed
     t.inputs = inputs
     t.output_count = basic.int_to_var_int(len(outputs))
     t.outputs = outputs
+    msg = 'Signed transaction successfully loaded from hex format and validated.'
+    log(msg)
     return t
 
 
