@@ -22,6 +22,9 @@ from os.path import isdir, isfile, join
 util = bitcoin_toolset.util
 v = util.validate
 hexlify = binascii.hexlify
+basic = bitcoin_toolset.code.basic
+hex_len = basic.hex_len
+transaction = bitcoin_toolset.code.transaction
 submodules = bitcoin_toolset.submodules
 
 
@@ -331,28 +334,28 @@ def get_python_version(a):
 
 
 def get_private_key_wif(a):
-  private_key_wif = bitcoin_toolset.code.basic.private_key_hex_to_wif(a.private_key_hex)
+  private_key_wif = basic.private_key_hex_to_wif(a.private_key_hex)
   print(private_key_wif)
 
 
 
 
 def private_key_wif_to_hex(a):
-  private_key_hex = bitcoin_toolset.code.basic.private_key_wif_to_hex(a.private_key_wif)
+  private_key_hex = basic.private_key_wif_to_hex(a.private_key_wif)
   print(private_key_hex)
 
 
 
 
 def get_public_key(a):
-  public_key_hex = bitcoin_toolset.code.basic.private_key_hex_to_public_key_hex(a.private_key_hex)
+  public_key_hex = basic.private_key_hex_to_public_key_hex(a.private_key_hex)
   print(public_key_hex)
 
 
 
 
 def get_address(a):
-  address = bitcoin_toolset.code.basic.private_key_hex_to_address(a.private_key_hex)
+  address = basic.private_key_hex_to_address(a.private_key_hex)
   print(address)
 
 
@@ -362,11 +365,11 @@ def sign_data(a):
   data_ascii = a.data
   v.validate_string_is_printable_ascii(data_ascii)
   data_hex = hexlify(data_ascii.encode()).decode('ascii')
-  signature_hex = bitcoin_toolset.code.basic.create_deterministic_signature(a.private_key_hex, data_hex)
+  signature_hex = basic.create_deterministic_signature(a.private_key_hex, data_hex)
   print(signature_hex)
   # Double-check signature by default.
-  public_key_hex = bitcoin_toolset.code.basic.private_key_hex_to_public_key_hex(a.private_key_hex)
-  valid_signature = bitcoin_toolset.code.basic.verify_signature(public_key_hex, data_hex, signature_hex)
+  public_key_hex = basic.private_key_hex_to_public_key_hex(a.private_key_hex)
+  valid_signature = basic.verify_signature(public_key_hex, data_hex, signature_hex)
   if not valid_signature:
     raise ValueError("Invalid signature!")
 
@@ -377,7 +380,7 @@ def verify_data_signature(a):
   data_ascii = a.data
   v.validate_string_is_printable_ascii(data_ascii)
   data_hex = hexlify(data_ascii.encode()).decode('ascii')
-  valid_signature = bitcoin_toolset.code.basic.verify_signature(a.public_key_hex, data_hex, a.signature_hex)
+  valid_signature = basic.verify_signature(a.public_key_hex, data_hex, a.signature_hex)
   if valid_signature:
     print("Valid signature.")
   else:
@@ -391,14 +394,14 @@ def create_unsigned_transaction_json(a):
   tx_unsigned_json = tx_unsigned.to_json()
   print(tx_unsigned_json)
   # Validate transaction by default by rebuilding it.
-  tx_unsigned_2 = bitcoin_toolset.code.transaction.Transaction.from_json(tx_unsigned_json)
+  tx_unsigned_2 = transaction.Transaction.from_json(tx_unsigned_json)
 
 
 
 
 def validate_unsigned_transaction_json(a):
   tx_unsigned_json = a.data
-  tx_unsigned = bitcoin_toolset.code.transaction.Transaction.from_json(tx_unsigned_json)
+  tx_unsigned = transaction.Transaction.from_json(tx_unsigned_json)
   print("Unsigned transaction data validated.")
 
 
@@ -407,7 +410,7 @@ def validate_unsigned_transaction_json(a):
 def create_signed_transaction_json(a):
   # Note: When the unsigned tx is built from the JSON data, it is validated.
   tx_unsigned_json = a.data
-  tx_unsigned = bitcoin_toolset.code.transaction.Transaction.from_json(tx_unsigned_json)
+  tx_unsigned = transaction.Transaction.from_json(tx_unsigned_json)
   #deb(tx_unsigned)
   tx_signed = tx_unsigned.sign(a.private_keys_hex)
   #deb(tx_signed.to_json())
@@ -423,7 +426,7 @@ def create_signed_transaction_json(a):
 
 def verify_signed_transaction_json(a):
   tx_signed_json = a.data
-  tx_signed = bitcoin_toolset.code.transaction.Transaction.from_json(tx_signed_json)
+  tx_signed = transaction.Transaction.from_json(tx_signed_json)
   valid_signatures = tx_signed.verify()
   plural = 's' if len(tx_signed.inputs) > 1 else ''
   if valid_signatures:
@@ -438,7 +441,7 @@ def verify_signed_transaction_json(a):
 
 def create_signed_transaction_hex(a):
   tx_signed_json = a.data
-  tx_signed = bitcoin_toolset.code.transaction.Transaction.from_json(tx_signed_json)
+  tx_signed = transaction.Transaction.from_json(tx_signed_json)
   valid_signatures = tx_signed.verify()
   print(tx_signed.to_hex_signed_form())
   plural = 's' if len(tx_signed.inputs) > 1 else ''
@@ -451,7 +454,7 @@ def create_signed_transaction_hex(a):
 
 def decode_signed_transaction_hex(a):
   tx_signed_hex = a.data.strip()
-  tx_signed = bitcoin_toolset.code.transaction.Transaction.from_hex_signed(tx_signed_hex)
+  tx_signed = transaction.Transaction.from_hex_signed(tx_signed_hex)
   valid_signatures = tx_signed.verify()
   print(tx_signed.to_json())
   plural = 's' if len(tx_signed.inputs) > 1 else ''
@@ -464,7 +467,7 @@ def decode_signed_transaction_hex(a):
 
 def verify_signed_transaction_hex(a):
   tx_signed_hex = a.data.strip()
-  tx_signed = bitcoin_toolset.code.transaction.Transaction.from_hex_signed(tx_signed_hex)
+  tx_signed = transaction.Transaction.from_hex_signed(tx_signed_hex)
   valid_signatures = tx_signed.verify()
   plural = 's' if len(tx_signed.inputs) > 1 else ''
   if not valid_signatures:
