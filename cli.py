@@ -485,25 +485,27 @@ def create_sign_and_verify_transaction_hex(a):
   tx_unsigned_json = tx_unsigned.to_json()
   #print(tx_unsigned_json)
   # - Validate tx (by rebuilding it)
-  tx_unsigned_2 = bitcoin_toolset.code.transaction.Transaction.from_json(tx_unsigned_json)
+  tx_unsigned_2 = transaction.Transaction.from_json(tx_unsigned_json)
   # - Sign tx
   tx_signed = tx_unsigned.sign(a.private_keys_hex)
   #deb(tx_signed.to_json())
   # - Verify tx
-  valid_signatures = tx_signed.verify()
-  plural = 's' if len(tx_signed.inputs) > 1 else ''
-  if not valid_signatures:
-    msg = "Invalid signature{}!".format(plural)
+  invalid_signatures = tx_signed.verify()
+  plural = 's' if invalid_signatures > 1 else ''
+  if invalid_signatures:
+    msg = "Signed transaction: {} invalid signature{} detected! Please re-run using the --debug flag.".format(invalid_signatures, plural)
     raise ValueError(msg)
   # - Get hex form of signed tx
   tx_signed_hex = tx_signed.to_hex_signed_form()
+  msg = "tx_signed_hex ({} bytes) = {}".format(hex_len(tx_signed_hex), tx_signed_hex)
+  deb(msg)
   # - Decode and verify signed tx hex.
-  tx_signed_2 = bitcoin_toolset.code.transaction.Transaction.from_hex_signed(tx_signed_hex)
-  valid_signatures_2 = tx_signed_2.verify()
+  tx_signed_2 = transaction.Transaction.from_hex_signed(tx_signed_hex)
+  invalid_signatures_2 = tx_signed_2.verify()
   plural_2 = 's' if len(tx_signed_2.inputs) > 1 else ''
   #print(tx_signed_2.to_json())
-  if not valid_signatures_2:
-    msg = "Signed tx hex: Invalid signature{}!".format(plural_2)
+  if invalid_signatures_2:
+    msg = "Signed transaction (hex format): {} invalid signature{} detect! Please re-run using the --debug flag.".format(invalid_signatures_2, plural_2)
     raise ValueError(msg)
   # Print the signed tx hex.
   print(tx_signed_hex)
